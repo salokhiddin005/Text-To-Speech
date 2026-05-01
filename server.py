@@ -1,6 +1,11 @@
-"""Flask web server: phone-accessible TTS over your local Wi-Fi."""
+"""Flask web server: phone-accessible TTS over your local Wi-Fi.
+
+Also runs on cloud platforms (Render, Hugging Face Spaces, etc.) — set the
+PORT environment variable to override the default of 5000.
+"""
 
 import io
+import os
 import socket
 
 from flask import Flask, jsonify, render_template, request, send_file
@@ -39,13 +44,14 @@ def _local_ip() -> str:
 
 
 def main() -> None:
-    port = 5000
-    ip = _local_ip()
-    print()
-    print(f"  Open on this laptop:   http://localhost:{port}")
-    print(f"  Open from your phone:  http://{ip}:{port}")
-    print(f"  (Phone must be on the same Wi-Fi network.)")
-    print()
+    port = int(os.environ.get("PORT", 5000))
+    if "PORT" not in os.environ:
+        ip = _local_ip()
+        print()
+        print(f"  Open on this laptop:   http://localhost:{port}")
+        print(f"  Open from your phone:  http://{ip}:{port}")
+        print(f"  (Phone must be on the same Wi-Fi network.)")
+        print()
     app.run(host="0.0.0.0", port=port, debug=False)
 
 

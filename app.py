@@ -4,7 +4,8 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 
-from tts import StreamingPlayer, TTSEngine
+from tts.engine import TTSEngine
+from tts.player import StreamingPlayer
 
 SAMPLE_TEXT = (
     "Hello, this is my text to speech system. "

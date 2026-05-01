@@ -6,3 +6,5 @@ output.wav
 *.egg-info/
 .vscode/
 .idea/
+hf-space/
+flask-space/

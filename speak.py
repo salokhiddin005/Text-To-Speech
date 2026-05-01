@@ -2,7 +2,8 @@
 
 import sys
 
-from tts import StreamingPlayer, TTSEngine
+from tts.engine import TTSEngine
+from tts.player import StreamingPlayer
 
 
 def main() -> None:
