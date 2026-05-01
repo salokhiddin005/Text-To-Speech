@@ -1,130 +1,178 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Text to Speech</title>
   <style>
+    :root {
+      --bg:        #0f172a;
+      --bg-card:   #1e293b;
+      --border:    #334155;
+      --text:      #e2e8f0;
+      --text-muted:#94a3b8;
+      --accent:    #2563eb;
+      --danger:    #dc2626;
+      --warning:   #f59e0b;
+      --success:   #16a34a;
+    }
+    [data-theme="light"] {
+      --bg:        #f8fafc;
+      --bg-card:   #ffffff;
+      --border:    #cbd5e1;
+      --text:      #0f172a;
+      --text-muted:#64748b;
+      --accent:    #2563eb;
+    }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       padding: 20px;
+      transition: background 0.15s, color 0.15s;
     }
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
+    .container { max-width: 720px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
     }
-    h1 {
-      font-size: 22px;
-      margin: 0 0 16px;
-      font-weight: 600;
-    }
+    h1 { font-size: 22px; margin: 0; font-weight: 600; }
     label {
       display: block;
       font-size: 13px;
-      color: #94a3b8;
+      color: var(--text-muted);
       margin: 0 0 6px;
     }
     select, textarea, input[type="range"] {
       width: 100%;
       font-family: inherit;
       font-size: 16px;
-      color: #e2e8f0;
-      background: #1e293b;
-      border: 1px solid #334155;
+      color: var(--text);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 10px;
     }
     select { padding: 10px 12px; cursor: pointer; }
-    select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
-    textarea {
-      min-height: 180px;
-      padding: 14px;
-      resize: vertical;
-    }
+    select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { min-height: 180px; padding: 14px; resize: vertical; }
     .field { margin-bottom: 12px; }
+    .voice-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .voice-row select { flex: 1; }
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: -4px 4px 8px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .char-count.warn   { color: var(--warning); }
+    .char-count.danger { color: var(--danger); }
     .examples {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin: 8px 0 12px;
     }
-    .examples button {
+    .examples button, .history-list button, .preview-btn, .theme-btn {
       padding: 8px 12px;
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 999px;
-      color: #cbd5e1;
+      color: var(--text);
       font-size: 13px;
       cursor: pointer;
+      font-family: inherit;
     }
-    .examples button:hover { border-color: #3b82f6; color: #e2e8f0; }
+    .examples button:hover, .history-list button:hover, .preview-btn:hover, .theme-btn:hover {
+      border-color: var(--accent);
+    }
+    .preview-btn { white-space: nowrap; padding: 0 16px; }
+    .preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .speed-row {
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .speed-row input[type="range"] {
-      flex: 1;
-      accent-color: #3b82f6;
-      background: transparent;
-      border: 0;
+      flex: 1; accent-color: var(--accent);
+      background: transparent; border: 0;
     }
     .speed-value {
-      min-width: 48px;
-      text-align: right;
+      min-width: 48px; text-align: right;
       font-variant-numeric: tabular-nums;
-      color: #e2e8f0;
+      color: var(--text);
     }
     .row {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
-      flex-wrap: wrap;
+      display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
     }
     button.action {
-      flex: 1;
-      min-width: 120px;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
+      flex: 1; min-width: 120px;
+      padding: 14px; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
       transition: opacity 0.15s, transform 0.05s;
+      font-family: inherit;
     }
     button.action:active { transform: translateY(1px); }
     button.action:disabled { opacity: 0.4; cursor: not-allowed; }
-    .speak    { background: #2563eb; color: white; }
+    .speak    { background: var(--accent); color: white; }
     .stop     { background: #475569; color: white; }
-    .download { background: #16a34a; color: white; }
-    .clear    { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .download { background: var(--success); color: white; }
+    .clear    { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .status {
       margin-top: 14px;
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 14px;
       min-height: 20px;
     }
+    .history {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .history h2 {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .history-list button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Text to Speech</h1>
+    <div class="header">
+      <h1>Text to Speech</h1>
+      <button class="theme-btn" id="themeBtn">Light</button>
+    </div>
 
     <div class="field">
       <label for="voice">Voice</label>
-      <select id="voice">
-        {% for voice_id, voice_name in voices.items() %}
-        <option value="{{ voice_id }}" {% if voice_id == default_voice %}selected{% endif %}>{{ voice_name }}</option>
-        {% endfor %}
-      </select>
+      <div class="voice-row">
+        <select id="voice">
+          {% for voice_id, voice_name in voices.items() %}
+          <option value="{{ voice_id }}" {% if voice_id == default_voice %}selected{% endif %}>{{ voice_name }}</option>
+          {% endfor %}
+        </select>
+        <button class="preview-btn" id="previewBtn">Preview</button>
+      </div>
     </div>
 
     <div class="field">
       <label for="text">Text</label>
       <textarea id="text" placeholder="Type or paste text...">Hello, this is my text-to-speech system. It supports multiple voices and adjustable speech speed.</textarea>
+      <div class="char-count" id="charCount">0 / 1000</div>
     </div>
 
     <div class="examples">
@@ -149,39 +197,128 @@
     </div>
 
     <div class="status" id="status">Ready.</div>
+    <div class="hint">Shortcuts: Ctrl+Enter to speak, Esc to stop</div>
+
+    <div class="history" id="history" style="display:none">
+      <h2>Recent</h2>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
     <audio id="player" style="display:none"></audio>
   </div>
 
   <script>
     const textbox     = document.getElementById('text');
     const voiceSelect = document.getElementById('voice');
+    const previewBtn  = document.getElementById('previewBtn');
     const speedInput  = document.getElementById('speed');
     const speedValue  = document.getElementById('speedValue');
     const speakBtn    = document.getElementById('speakBtn');
     const stopBtn     = document.getElementById('stopBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const clearBtn    = document.getElementById('clearBtn');
+    const charCount   = document.getElementById('charCount');
+    const themeBtn    = document.getElementById('themeBtn');
     const status      = document.getElementById('status');
     const player      = document.getElementById('player');
+    const historyEl   = document.getElementById('history');
+    const historyList = document.getElementById('historyList');
+
+    const MAX_CHARS    = 1000;
+    const WARN_CHARS   = 800;
+    const HISTORY_KEY  = 'tts-history';
+    const HISTORY_MAX  = 5;
+    const THEME_KEY    = 'tts-theme';
 
     let currentBlob = null;
     let currentUrl  = null;
 
-    function setBusy(busy) {
-      speakBtn.disabled = busy;
-      stopBtn.disabled  = !busy;
+    // ───────── Theme toggle ─────────
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      themeBtn.textContent = theme === 'light' ? 'Dark' : 'Light';
+      localStorage.setItem(THEME_KEY, theme);
     }
+    applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
 
+    // ───────── Character counter ─────────
+    function updateCharCount() {
+      const n = textbox.value.length;
+      charCount.textContent = `${n} / ${MAX_CHARS}`;
+      charCount.classList.toggle('warn',   n > WARN_CHARS && n <= MAX_CHARS);
+      charCount.classList.toggle('danger', n > MAX_CHARS);
+    }
+    textbox.addEventListener('input', updateCharCount);
+    updateCharCount();
+
+    // ───────── Speed slider live label ─────────
     speedInput.addEventListener('input', () => {
       speedValue.textContent = parseFloat(speedInput.value).toFixed(1) + 'x';
     });
 
+    // ───────── Examples ─────────
     document.querySelectorAll('.examples button').forEach((btn) => {
       btn.addEventListener('click', () => {
         textbox.value = btn.dataset.example;
+        updateCharCount();
         textbox.focus();
       });
     });
+
+    // ───────── History ─────────
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function saveHistory(arr) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+    }
+    function addToHistory(text) {
+      let h = loadHistory().filter(t => t !== text);
+      h.unshift(text);
+      h = h.slice(0, HISTORY_MAX);
+      saveHistory(h);
+      renderHistory();
+    }
+    function renderHistory() {
+      const h = loadHistory();
+      if (!h.length) { historyEl.style.display = 'none'; return; }
+      historyEl.style.display = 'block';
+      historyList.innerHTML = '';
+      h.forEach(text => {
+        const btn = document.createElement('button');
+        btn.textContent = text.length > 50 ? text.slice(0, 47) + '...' : text;
+        btn.title = text;
+        btn.addEventListener('click', () => {
+          textbox.value = text;
+          updateCharCount();
+          textbox.focus();
+        });
+        historyList.appendChild(btn);
+      });
+    }
+    renderHistory();
+
+    // ───────── Synthesis core ─────────
+    function setBusy(busy) {
+      speakBtn.disabled = busy;
+      stopBtn.disabled  = !busy;
+      previewBtn.disabled = busy;
+    }
+
+    async function synthesize(text, voice, speed) {
+      const res = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice, speed }),
+      });
+      if (!res.ok) throw new Error(`server error ${res.status}`);
+      return res.blob();
+    }
 
     async function speak() {
       const text = textbox.value.trim();
@@ -190,17 +327,7 @@
       downloadBtn.disabled = true;
       status.textContent = 'Synthesizing...';
       try {
-        const res = await fetch('/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text,
-            voice: voiceSelect.value,
-            speed: parseFloat(speedInput.value),
-          }),
-        });
-        if (!res.ok) throw new Error(`server error ${res.status}`);
-        const blob = await res.blob();
+        const blob = await synthesize(text, voiceSelect.value, parseFloat(speedInput.value));
         if (currentUrl) URL.revokeObjectURL(currentUrl);
         currentBlob = blob;
         currentUrl  = URL.createObjectURL(blob);
@@ -208,6 +335,7 @@
         await player.play();
         status.textContent = 'Playing...';
         downloadBtn.disabled = false;
+        addToHistory(text);
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         setBusy(false);
@@ -232,14 +360,53 @@
       status.textContent = 'Downloaded.';
     }
 
+    // ───────── Voice preview ─────────
+    previewBtn.addEventListener('click', async () => {
+      const original = previewBtn.textContent;
+      previewBtn.disabled = true;
+      previewBtn.textContent = 'Loading...';
+      status.textContent = 'Previewing voice...';
+      try {
+        const blob = await synthesize(
+          'Hello, this is a sample of this voice.',
+          voiceSelect.value,
+          1.0
+        );
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = URL.createObjectURL(blob);
+        player.src = currentUrl;
+        await player.play();
+        status.textContent = 'Playing preview...';
+      } catch (err) {
+        status.textContent = 'Preview error: ' + err.message;
+      } finally {
+        previewBtn.textContent = original;
+        previewBtn.disabled = false;
+      }
+    });
+
+    // ───────── Buttons ─────────
     speakBtn.addEventListener('click', speak);
     stopBtn.addEventListener('click', stop);
     downloadBtn.addEventListener('click', download);
-    clearBtn.addEventListener('click', () => { textbox.value = ''; textbox.focus(); });
-
+    clearBtn.addEventListener('click', () => {
+      textbox.value = '';
+      updateCharCount();
+      textbox.focus();
+    });
     player.addEventListener('ended', () => {
       status.textContent = 'Done.';
       setBusy(false);
+    });
+
+    // ───────── Keyboard shortcuts ─────────
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!speakBtn.disabled) speak();
+      } else if (e.key === 'Escape' && !stopBtn.disabled) {
+        stop();
+      }
     });
   </script>
 </body>
