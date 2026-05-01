@@ -14,7 +14,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 640px;
+      max-width: 720px;
       margin: 0 auto;
     }
     h1 {
@@ -22,41 +22,85 @@
       margin: 0 0 16px;
       font-weight: 600;
     }
-    textarea {
+    label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0 0 6px;
+    }
+    select, textarea, input[type="range"] {
       width: 100%;
-      min-height: 220px;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 16px;
       font-family: inherit;
+      font-size: 16px;
+      color: #e2e8f0;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+    }
+    select { padding: 10px 12px; cursor: pointer; }
+    select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea {
+      min-height: 180px;
+      padding: 14px;
       resize: vertical;
     }
-    textarea:focus {
-      outline: none;
-      border-color: #3b82f6;
+    .field { margin-bottom: 12px; }
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 12px;
+    }
+    .examples button {
+      padding: 8px 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      color: #cbd5e1;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .examples button:hover { border-color: #3b82f6; color: #e2e8f0; }
+    .speed-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .speed-row input[type="range"] {
+      flex: 1;
+      accent-color: #3b82f6;
+      background: transparent;
+      border: 0;
+    }
+    .speed-value {
+      min-width: 48px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #e2e8f0;
     }
     .row {
       display: flex;
       gap: 10px;
       margin-top: 12px;
+      flex-wrap: wrap;
     }
-    button {
+    button.action {
       flex: 1;
-      padding: 16px;
+      min-width: 120px;
+      padding: 14px;
       border: none;
       border-radius: 10px;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, transform 0.05s;
     }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .speak { background: #2563eb; color: white; }
-    .stop  { background: #475569; color: white; }
-    .clear { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    button.action:active { transform: translateY(1px); }
+    button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+    .speak    { background: #2563eb; color: white; }
+    .stop     { background: #475569; color: white; }
+    .download { background: #16a34a; color: white; }
+    .clear    { background: transparent; color: #94a3b8; border: 1px solid #334155; }
     .status {
       margin-top: 14px;
       color: #94a3b8;
@@ -68,49 +112,102 @@
 <body>
   <div class="container">
     <h1>Text to Speech</h1>
-    <textarea id="text" placeholder="Type or paste text...">Hello from my phone. This is my text to speech system, running on my laptop.</textarea>
-    <div class="row">
-      <button class="speak" id="speakBtn">Speak</button>
-      <button class="stop" id="stopBtn" disabled>Stop</button>
-      <button class="clear" id="clearBtn">Clear</button>
+
+    <div class="field">
+      <label for="voice">Voice</label>
+      <select id="voice">
+        {% for voice_id, voice_name in voices.items() %}
+        <option value="{{ voice_id }}" {% if voice_id == default_voice %}selected{% endif %}>{{ voice_name }}</option>
+        {% endfor %}
+      </select>
     </div>
+
+    <div class="field">
+      <label for="text">Text</label>
+      <textarea id="text" placeholder="Type or paste text...">Hello, this is my text-to-speech system. It supports multiple voices and adjustable speech speed.</textarea>
+    </div>
+
+    <div class="examples">
+      <button data-example="Hello! Welcome to my text to speech system.">Greeting</button>
+      <button data-example="Dr. Smith owes me 1234 dollars on the 21st of June at 3:45 p.m.">Numbers test</button>
+      <button data-example="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once.">Long paragraph</button>
+      <button data-example="Life is what happens to you while you are busy making other plans.">Quote</button>
+    </div>
+
+    <div class="field">
+      <label for="speed">Speed <span class="speed-value" id="speedValue">1.0x</span></label>
+      <div class="speed-row">
+        <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0">
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="action speak"    id="speakBtn">Speak</button>
+      <button class="action stop"     id="stopBtn"     disabled>Stop</button>
+      <button class="action download" id="downloadBtn" disabled>Download</button>
+      <button class="action clear"    id="clearBtn">Clear</button>
+    </div>
+
     <div class="status" id="status">Ready.</div>
     <audio id="player" style="display:none"></audio>
   </div>
 
   <script>
-    const textbox  = document.getElementById('text');
-    const speakBtn = document.getElementById('speakBtn');
-    const stopBtn  = document.getElementById('stopBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const status   = document.getElementById('status');
-    const player   = document.getElementById('player');
+    const textbox     = document.getElementById('text');
+    const voiceSelect = document.getElementById('voice');
+    const speedInput  = document.getElementById('speed');
+    const speedValue  = document.getElementById('speedValue');
+    const speakBtn    = document.getElementById('speakBtn');
+    const stopBtn     = document.getElementById('stopBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const status      = document.getElementById('status');
+    const player      = document.getElementById('player');
 
-    let currentUrl = null;
+    let currentBlob = null;
+    let currentUrl  = null;
 
     function setBusy(busy) {
       speakBtn.disabled = busy;
       stopBtn.disabled  = !busy;
     }
 
+    speedInput.addEventListener('input', () => {
+      speedValue.textContent = parseFloat(speedInput.value).toFixed(1) + 'x';
+    });
+
+    document.querySelectorAll('.examples button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        textbox.value = btn.dataset.example;
+        textbox.focus();
+      });
+    });
+
     async function speak() {
       const text = textbox.value.trim();
       if (!text) return;
       setBusy(true);
+      downloadBtn.disabled = true;
       status.textContent = 'Synthesizing...';
       try {
         const res = await fetch('/speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({
+            text,
+            voice: voiceSelect.value,
+            speed: parseFloat(speedInput.value),
+          }),
         });
         if (!res.ok) throw new Error(`server error ${res.status}`);
         const blob = await res.blob();
         if (currentUrl) URL.revokeObjectURL(currentUrl);
-        currentUrl = URL.createObjectURL(blob);
+        currentBlob = blob;
+        currentUrl  = URL.createObjectURL(blob);
         player.src = currentUrl;
         await player.play();
         status.textContent = 'Playing...';
+        downloadBtn.disabled = false;
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         setBusy(false);
@@ -124,9 +221,21 @@
       setBusy(false);
     }
 
+    function download() {
+      if (!currentBlob) return;
+      const a = document.createElement('a');
+      a.href = currentUrl;
+      a.download = `speech-${Date.now()}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      status.textContent = 'Downloaded.';
+    }
+
     speakBtn.addEventListener('click', speak);
     stopBtn.addEventListener('click', stop);
-    clearBtn.addEventListener('click', () => { textbox.value = ''; });
+    downloadBtn.addEventListener('click', download);
+    clearBtn.addEventListener('click', () => { textbox.value = ''; textbox.focus(); });
 
     player.addEventListener('ended', () => {
       status.textContent = 'Done.';

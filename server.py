@@ -11,6 +11,7 @@ import socket
 from flask import Flask, jsonify, render_template, request, send_file
 
 from tts import TTSEngine
+from tts.engine import VOICES, DEFAULT_VOICE_ID
 
 app = Flask(__name__)
 engine = TTSEngine()
@@ -18,7 +19,12 @@ engine = TTSEngine()
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", voices=VOICES, default_voice=DEFAULT_VOICE_ID)
+
+
+@app.route("/voices")
+def voices():
+    return jsonify(voices=VOICES, default=DEFAULT_VOICE_ID)
 
 
 @app.route("/speak", methods=["POST"])
@@ -27,12 +33,28 @@ def speak():
     text = (data.get("text") or "").strip()
     if not text:
         return jsonify(error="empty text"), 400
-    audio = engine.synthesize_to_wav_bytes(text)
+
+    voice_id = data.get("voice") or DEFAULT_VOICE_ID
+    if voice_id not in VOICES:
+        return jsonify(error=f"unknown voice {voice_id!r}"), 400
+
+    try:
+        speed = float(data.get("speed", 1.0))
+    except (TypeError, ValueError):
+        speed = 1.0
+    speed = max(0.5, min(speed, 2.0))
+    length_scale = 1.0 / speed
+
+    audio = engine.synthesize_to_wav_bytes(text, voice_id=voice_id, length_scale=length_scale)
     return send_file(io.BytesIO(audio), mimetype="audio/wav")
 
 
+@app.route("/health")
+def health():
+    return {"status": "ok"}
+
+
 def _local_ip() -> str:
-    """Best-effort guess at this machine's LAN IP, for printing instructions."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.connect(("8.8.8.8", 80))

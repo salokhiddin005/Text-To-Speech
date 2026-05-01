@@ -1,23 +1,28 @@
-"""Download the en_US-amy-medium Piper voice model into ./models/."""
+"""Download all configured Piper voices into ./models/.
+
+Idempotent — already-downloaded files are skipped.
+"""
 
 import sys
 import urllib.request
 from pathlib import Path
 
-VOICE = "en_US-amy-medium"
-BASE_URL = (
-    "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
-    "en/en_US/amy/medium"
-)
-FILES = [f"{VOICE}.onnx", f"{VOICE}.onnx.json"]
+VOICES = [
+    ("en_US-amy-medium",                       "en/en_US/amy/medium"),
+    ("en_US-norman-medium",                    "en/en_US/norman/medium"),
+    ("en_US-lessac-medium",                    "en/en_US/lessac/medium"),
+    ("en_GB-alba-medium",                      "en/en_GB/alba/medium"),
+    ("en_GB-northern_english_male-medium",     "en/en_GB/northern_english_male/medium"),
+]
+BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 MODELS_DIR = Path(__file__).parent / "models"
 
 
-def download(filename: str) -> None:
-    url = f"{BASE_URL}/{filename}"
+def download(filename: str, voice_path: str) -> None:
+    url = f"{BASE_URL}/{voice_path}/{filename}"
     dest = MODELS_DIR / filename
     if dest.exists():
-        print(f"  exists: {dest.name}")
+        print(f"  exists:      {filename}")
         return
     print(f"  downloading: {filename}")
     last_percent = -1
@@ -37,9 +42,10 @@ def download(filename: str) -> None:
 
 def main() -> None:
     MODELS_DIR.mkdir(exist_ok=True)
-    print(f"Downloading {VOICE} voice into {MODELS_DIR}/")
-    for filename in FILES:
-        download(filename)
+    print(f"Downloading {len(VOICES)} voices into {MODELS_DIR}/")
+    for voice_id, voice_path in VOICES:
+        download(f"{voice_id}.onnx", voice_path)
+        download(f"{voice_id}.onnx.json", voice_path)
     print("Done.")
 
 
