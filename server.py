@@ -5,23 +5,42 @@ PORT environment variable to override the default of 5000.
 """
 
 import io
+import logging
 import os
 import socket
 import threading
 from datetime import datetime
-from pathlib import Path
+from functools import lru_cache
 
 from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from tts import TTSEngine
-from tts.engine import VOICES, DEFAULT_VOICE_ID
+from tts.engine import DEFAULT_VOICE_ID, VOICES
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder="static")
 engine = TTSEngine()
 
-# ─────────── usage analytics (in-memory) ───────────
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["60 per minute"],
+    storage_uri="memory://",
+)
+
 _stats_lock = threading.Lock()
-_stats = {"requests": 0, "by_voice": {}, "started_at": datetime.utcnow().isoformat() + "Z"}
+_stats: dict = {
+    "requests": 0,
+    "by_voice": {},
+    "started_at": datetime.utcnow().isoformat() + "Z",
+}
 
 
 def _bump(voice_id: str) -> None:
@@ -30,7 +49,18 @@ def _bump(voice_id: str) -> None:
         _stats["by_voice"][voice_id] = _stats["by_voice"].get(voice_id, 0) + 1
 
 
-# ─────────── pages ───────────
+@lru_cache(maxsize=128)
+def _synthesize_cached(text: str, voice_id: str, length_scale: float) -> bytes:
+    """Cache key: (text, voice_id, length_scale). Returns full WAV bytes."""
+    logger.info(
+        "synthesize voice=%s len_scale=%.3f chars=%d",
+        voice_id,
+        length_scale,
+        len(text),
+    )
+    return engine.synthesize_to_wav_bytes(text, voice_id=voice_id, length_scale=length_scale)
+
+
 @app.route("/")
 def index():
     return render_template("index.html", voices=VOICES, default_voice=DEFAULT_VOICE_ID)
@@ -41,10 +71,11 @@ def docs():
     return render_template("docs.html", voices=VOICES)
 
 
-# ─────────── PWA static files ───────────
 @app.route("/manifest.json")
 def manifest():
-    return send_from_directory(app.static_folder, "manifest.json", mimetype="application/manifest+json")
+    return send_from_directory(
+        app.static_folder, "manifest.json", mimetype="application/manifest+json"
+    )
 
 
 @app.route("/sw.js")
@@ -52,7 +83,6 @@ def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
 
 
-# ─────────── core API ───────────
 def _do_speak(payload: dict):
     text = (payload.get("text") or "").strip()
     if not text:
@@ -65,23 +95,26 @@ def _do_speak(payload: dict):
     except (TypeError, ValueError):
         speed = 1.0
     speed = max(0.5, min(speed, 2.0))
-    length_scale = 1.0 / speed
-    audio = engine.synthesize_to_wav_bytes(text, voice_id=voice_id, length_scale=length_scale)
+    length_scale = round(1.0 / speed, 3)
+    audio = _synthesize_cached(text, voice_id, length_scale)
     _bump(voice_id)
     return audio, None
 
 
 @app.route("/speak", methods=["POST"])
+@limiter.limit("30 per minute")
 def speak():
     payload = request.get_json(silent=True) or {}
     audio, err = _do_speak(payload)
     if err:
         msg, status = err
+        logger.warning("speak rejected: %s", msg)
         return jsonify(error=msg), status
     return send_file(io.BytesIO(audio), mimetype="audio/wav")
 
 
 @app.route("/api/speak", methods=["POST"])
+@limiter.limit("30 per minute")
 def api_speak():
     """Public API endpoint — same as /speak but documented at /docs."""
     payload = request.get_json(silent=True) or {}
@@ -104,7 +137,16 @@ def api_voices():
 @app.route("/api/stats")
 def api_stats():
     with _stats_lock:
-        return jsonify(_stats)
+        cache_info = _synthesize_cached.cache_info()
+        return jsonify(
+            **_stats,
+            cache={
+                "hits": cache_info.hits,
+                "misses": cache_info.misses,
+                "size": cache_info.currsize,
+                "max": cache_info.maxsize,
+            },
+        )
 
 
 @app.route("/health")
@@ -127,11 +169,9 @@ def main() -> None:
     port = int(os.environ.get("PORT", 5000))
     if "PORT" not in os.environ:
         ip = _local_ip()
-        print()
-        print(f"  Open on this laptop:   http://localhost:{port}")
-        print(f"  Open from your phone:  http://{ip}:{port}")
-        print(f"  API docs:              http://localhost:{port}/docs")
-        print()
+        logger.info("Local:  http://localhost:%d", port)
+        logger.info("Phone:  http://%s:%d", ip, port)
+        logger.info("Docs:   http://localhost:%d/docs", port)
     app.run(host="0.0.0.0", port=port, debug=False)
 
 

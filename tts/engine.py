@@ -7,8 +7,8 @@ stays in memory, which keeps RAM usage low enough for free-tier hosts (Render's
 
 import io
 import wave
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Tuple
 
 import numpy as np
 from piper import PiperVoice
@@ -19,18 +19,18 @@ DEFAULT_MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 DEFAULT_VOICE_ID = "en_US-amy-medium"
 
 VOICES = {
-    "en_US-amy-medium":                    "Amy - English (US Female)",
-    "en_US-norman-medium":                 "Norman - English (US Male)",
-    "en_US-lessac-medium":                 "Lessac - English (US Female)",
-    "en_GB-alba-medium":                   "Alba - English (UK Female)",
-    "en_GB-northern_english_male-medium":  "Northern - English (UK Male)",
-    "es_ES-davefx-medium":                 "Davefx - Spanish",
-    "fr_FR-siwis-medium":                  "Siwis - French",
-    "de_DE-thorsten-medium":               "Thorsten - German",
-    "it_IT-paola-medium":                  "Paola - Italian",
-    "pt_BR-faber-medium":                  "Faber - Portuguese (Brazil)",
-    "ru_RU-irinia-medium":                 "Irina - Russian",
-    "ar_JO-kareem-medium":                 "Kareem - Arabic",
+    "en_US-amy-medium": "Amy - English (US Female)",
+    "en_US-norman-medium": "Norman - English (US Male)",
+    "en_US-lessac-medium": "Lessac - English (US Female)",
+    "en_GB-alba-medium": "Alba - English (UK Female)",
+    "en_GB-northern_english_male-medium": "Northern - English (UK Male)",
+    "es_ES-davefx-medium": "Davefx - Spanish",
+    "fr_FR-siwis-medium": "Siwis - French",
+    "de_DE-thorsten-medium": "Thorsten - German",
+    "it_IT-paola-medium": "Paola - Italian",
+    "pt_BR-faber-medium": "Faber - Portuguese (Brazil)",
+    "ru_RU-irinia-medium": "Irina - Russian",
+    "ar_JO-kareem-medium": "Kareem - Arabic",
 }
 
 
@@ -58,13 +58,14 @@ class TTSEngine:
     def _make_config(self, length_scale: float):
         try:
             from piper.config import SynthesisConfig
+
             return SynthesisConfig(length_scale=length_scale)
         except (ImportError, TypeError):
             return None
 
     def stream(
         self, text: str, voice_id: str = DEFAULT_VOICE_ID, length_scale: float = 1.0
-    ) -> Iterable[Tuple[np.ndarray, int]]:
+    ) -> Iterable[tuple[np.ndarray, int]]:
         voice = self._get_voice(voice_id)
         text = normalize_text(text)
         config = self._make_config(length_scale)

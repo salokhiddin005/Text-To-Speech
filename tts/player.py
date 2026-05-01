@@ -7,7 +7,7 @@ the current one plays, which keeps gaps between sentences inaudible.
 
 import queue
 import threading
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 import numpy as np
 import sounddevice as sd
@@ -24,7 +24,7 @@ class StreamingPlayer:
         self._stop_event.set()
         sd.stop()
 
-    def play(self, chunks: Iterable[Tuple[np.ndarray, int]]) -> None:
+    def play(self, chunks: Iterable[tuple[np.ndarray, int]]) -> None:
         self._stop_event.clear()
         q: queue.Queue = queue.Queue(maxsize=self._queue_size)
 

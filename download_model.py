@@ -10,18 +10,18 @@ import urllib.request
 from pathlib import Path
 
 VOICES = [
-    ("en_US-amy-medium",                       "en/en_US/amy/medium"),
-    ("en_US-norman-medium",                    "en/en_US/norman/medium"),
-    ("en_US-lessac-medium",                    "en/en_US/lessac/medium"),
-    ("en_GB-alba-medium",                      "en/en_GB/alba/medium"),
-    ("en_GB-northern_english_male-medium",     "en/en_GB/northern_english_male/medium"),
-    ("es_ES-davefx-medium",                    "es/es_ES/davefx/medium"),
-    ("fr_FR-siwis-medium",                     "fr/fr_FR/siwis/medium"),
-    ("de_DE-thorsten-medium",                  "de/de_DE/thorsten/medium"),
-    ("it_IT-paola-medium",                     "it/it_IT/paola/medium"),
-    ("pt_BR-faber-medium",                     "pt/pt_BR/faber/medium"),
-    ("ru_RU-irinia-medium",                    "ru/ru_RU/irinia/medium"),
-    ("ar_JO-kareem-medium",                    "ar/ar_JO/kareem/medium"),
+    ("en_US-amy-medium", "en/en_US/amy/medium"),
+    ("en_US-norman-medium", "en/en_US/norman/medium"),
+    ("en_US-lessac-medium", "en/en_US/lessac/medium"),
+    ("en_GB-alba-medium", "en/en_GB/alba/medium"),
+    ("en_GB-northern_english_male-medium", "en/en_GB/northern_english_male/medium"),
+    ("es_ES-davefx-medium", "es/es_ES/davefx/medium"),
+    ("fr_FR-siwis-medium", "fr/fr_FR/siwis/medium"),
+    ("de_DE-thorsten-medium", "de/de_DE/thorsten/medium"),
+    ("it_IT-paola-medium", "it/it_IT/paola/medium"),
+    ("pt_BR-faber-medium", "pt/pt_BR/faber/medium"),
+    ("ru_RU-irinia-medium", "ru/ru_RU/irinia/medium"),
+    ("ar_JO-kareem-medium", "ar/ar_JO/kareem/medium"),
 ]
 BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 MODELS_DIR = Path(__file__).parent / "models"

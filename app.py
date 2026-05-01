@@ -41,9 +41,7 @@ class TTSApp:
         self.speak_btn = ttk.Button(buttons, text="Speak", command=self._on_speak)
         self.speak_btn.pack(side="left")
 
-        self.stop_btn = ttk.Button(
-            buttons, text="Stop", command=self._on_stop, state="disabled"
-        )
+        self.stop_btn = ttk.Button(buttons, text="Stop", command=self._on_stop, state="disabled")
         self.stop_btn.pack(side="left", padx=(8, 0))
 
         self.clear_btn = ttk.Button(buttons, text="Clear", command=self._on_clear)
