@@ -1,0 +1,4 @@
+piper-tts>=1.2.0
+sounddevice>=0.4.6
+num2words>=0.5.13
+flask>=3.0.0
