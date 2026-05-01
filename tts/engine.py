@@ -19,11 +19,18 @@ DEFAULT_MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 DEFAULT_VOICE_ID = "en_US-amy-medium"
 
 VOICES = {
-    "en_US-amy-medium":      "Amy (US Female)",
-    "en_US-norman-medium":   "Norman (US Male)",
-    "en_US-lessac-medium":   "Lessac (US Female)",
-    "en_GB-alba-medium":     "Alba (UK Female)",
-    "en_GB-northern_english_male-medium": "Northern (UK Male)",
+    "en_US-amy-medium":                    "Amy - English (US Female)",
+    "en_US-norman-medium":                 "Norman - English (US Male)",
+    "en_US-lessac-medium":                 "Lessac - English (US Female)",
+    "en_GB-alba-medium":                   "Alba - English (UK Female)",
+    "en_GB-northern_english_male-medium":  "Northern - English (UK Male)",
+    "es_ES-davefx-medium":                 "Davefx - Spanish",
+    "fr_FR-siwis-medium":                  "Siwis - French",
+    "de_DE-thorsten-medium":               "Thorsten - German",
+    "it_IT-paola-medium":                  "Paola - Italian",
+    "pt_BR-faber-medium":                  "Faber - Portuguese (Brazil)",
+    "ru_RU-irinia-medium":                 "Irina - Russian",
+    "ar_JO-kareem-medium":                 "Kareem - Arabic",
 }
 
 
@@ -58,7 +65,6 @@ class TTSEngine:
     def stream(
         self, text: str, voice_id: str = DEFAULT_VOICE_ID, length_scale: float = 1.0
     ) -> Iterable[Tuple[np.ndarray, int]]:
-        """Yield (audio_int16_array, sample_rate) one chunk per sentence."""
         voice = self._get_voice(voice_id)
         text = normalize_text(text)
         config = self._make_config(length_scale)
@@ -69,7 +75,6 @@ class TTSEngine:
     def synthesize_to_wav_bytes(
         self, text: str, voice_id: str = DEFAULT_VOICE_ID, length_scale: float = 1.0
     ) -> bytes:
-        """Return a complete WAV file in memory."""
         voice = self._get_voice(voice_id)
         text = normalize_text(text)
         config = self._make_config(length_scale)
@@ -78,3 +83,7 @@ class TTSEngine:
         with wave.open(buf, "wb") as wav:
             voice.synthesize_wav(text, wav, **kwargs)
         return buf.getvalue()
+
+    def available_voices(self) -> list[str]:
+        """Voices that have actually been downloaded (model file exists)."""
+        return [vid for vid in VOICES if (self.models_dir / f"{vid}.onnx").exists()]

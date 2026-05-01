@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <title>Text to Speech</title>
   <style>
     :root {
@@ -39,7 +42,9 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
+      gap: 8px;
     }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
     h1 { font-size: 22px; margin: 0; font-weight: 600; }
     label {
       display: block;
@@ -60,11 +65,7 @@
     select:focus, textarea:focus { outline: none; border-color: var(--accent); }
     textarea { min-height: 180px; padding: 14px; resize: vertical; }
     .field { margin-bottom: 12px; }
-    .voice-row {
-      display: flex;
-      gap: 8px;
-      align-items: stretch;
-    }
+    .voice-row { display: flex; gap: 8px; align-items: stretch; }
     .voice-row select { flex: 1; }
     .char-count {
       text-align: right;
@@ -81,7 +82,7 @@
       gap: 8px;
       margin: 8px 0 12px;
     }
-    .examples button, .history-list button, .preview-btn, .theme-btn {
+    .examples button, .history-list button, .preview-btn, .theme-btn, .docs-btn {
       padding: 8px 12px;
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -90,29 +91,26 @@
       font-size: 13px;
       cursor: pointer;
       font-family: inherit;
+      text-decoration: none;
+      display: inline-block;
     }
-    .examples button:hover, .history-list button:hover, .preview-btn:hover, .theme-btn:hover {
+    .examples button:hover, .history-list button:hover, .preview-btn:hover, .theme-btn:hover, .docs-btn:hover {
       border-color: var(--accent);
     }
     .preview-btn { white-space: nowrap; padding: 0 16px; }
     .preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .speed-row {
+    .speed-row { display: flex; align-items: center; gap: 12px; }
+    .speed-row input[type="range"] { flex: 1; accent-color: var(--accent); background: transparent; border: 0; }
+    .speed-value { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+    .stream-toggle {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
     }
-    .speed-row input[type="range"] {
-      flex: 1; accent-color: var(--accent);
-      background: transparent; border: 0;
-    }
-    .speed-value {
-      min-width: 48px; text-align: right;
-      font-variant-numeric: tabular-nums;
-      color: var(--text);
-    }
-    .row {
-      display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
-    }
+    .row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
     button.action {
       flex: 1; min-width: 120px;
       padding: 14px; border: none; border-radius: 10px;
@@ -126,35 +124,44 @@
     .stop     { background: #475569; color: white; }
     .download { background: var(--success); color: white; }
     .clear    { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-    .status {
-      margin-top: 14px;
-      color: var(--text-muted);
-      font-size: 14px;
-      min-height: 20px;
+    .status { margin-top: 14px; color: var(--text-muted); font-size: 14px; min-height: 20px; }
+    .waveform {
+      width: 100%; height: 60px; margin-top: 12px;
+      background: var(--bg-card); border-radius: 10px;
+      border: 1px solid var(--border);
+      display: block;
     }
-    .history {
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
-    }
+    .history { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
     .history h2 {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0 0 8px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 13px; color: var(--text-muted); margin: 0 0 8px;
+      font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
     }
     .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .history-list button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-list button {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .footer {
+      margin-top: 32px; padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .footer a { color: var(--text-muted); text-decoration: none; }
+    .footer a:hover { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>Text to Speech</h1>
-      <button class="theme-btn" id="themeBtn">Light</button>
+      <div class="header-actions">
+        <a class="docs-btn" href="/docs" target="_blank">API</a>
+        <button class="theme-btn" id="themeBtn">Light</button>
+      </div>
     </div>
 
     <div class="field">
@@ -178,7 +185,7 @@
     <div class="examples">
       <button data-example="Hello! Welcome to my text to speech system.">Greeting</button>
       <button data-example="Dr. Smith owes me 1234 dollars on the 21st of June at 3:45 p.m.">Numbers test</button>
-      <button data-example="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once.">Long paragraph</button>
+      <button data-example="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once. It contains all the letters from A to Z.">Long paragraph</button>
       <button data-example="Life is what happens to you while you are busy making other plans.">Quote</button>
     </div>
 
@@ -186,6 +193,10 @@
       <label for="speed">Speed <span class="speed-value" id="speedValue">1.0x</span></label>
       <div class="speed-row">
         <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0">
+      </div>
+      <div class="stream-toggle">
+        <input type="checkbox" id="streamToggle">
+        <label for="streamToggle" style="margin: 0; cursor: pointer;">Stream sentence-by-sentence (faster start)</label>
       </div>
     </div>
 
@@ -196,6 +207,8 @@
       <button class="action clear"    id="clearBtn">Clear</button>
     </div>
 
+    <canvas class="waveform" id="waveform"></canvas>
+
     <div class="status" id="status">Ready.</div>
     <div class="hint">Shortcuts: Ctrl+Enter to speak, Esc to stop</div>
 
@@ -204,36 +217,46 @@
       <div class="history-list" id="historyList"></div>
     </div>
 
-    <audio id="player" style="display:none"></audio>
+    <div class="footer">
+      <span id="footerStats">—</span>
+      <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank">github</a>
+    </div>
+
+    <audio id="player" style="display:none" crossorigin="anonymous"></audio>
   </div>
 
   <script>
-    const textbox     = document.getElementById('text');
-    const voiceSelect = document.getElementById('voice');
-    const previewBtn  = document.getElementById('previewBtn');
-    const speedInput  = document.getElementById('speed');
-    const speedValue  = document.getElementById('speedValue');
-    const speakBtn    = document.getElementById('speakBtn');
-    const stopBtn     = document.getElementById('stopBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const clearBtn    = document.getElementById('clearBtn');
-    const charCount   = document.getElementById('charCount');
-    const themeBtn    = document.getElementById('themeBtn');
-    const status      = document.getElementById('status');
-    const player      = document.getElementById('player');
-    const historyEl   = document.getElementById('history');
-    const historyList = document.getElementById('historyList');
+    const textbox      = document.getElementById('text');
+    const voiceSelect  = document.getElementById('voice');
+    const previewBtn   = document.getElementById('previewBtn');
+    const speedInput   = document.getElementById('speed');
+    const speedValue   = document.getElementById('speedValue');
+    const streamToggle = document.getElementById('streamToggle');
+    const speakBtn     = document.getElementById('speakBtn');
+    const stopBtn      = document.getElementById('stopBtn');
+    const downloadBtn  = document.getElementById('downloadBtn');
+    const clearBtn     = document.getElementById('clearBtn');
+    const charCount    = document.getElementById('charCount');
+    const themeBtn     = document.getElementById('themeBtn');
+    const status       = document.getElementById('status');
+    const player       = document.getElementById('player');
+    const historyEl    = document.getElementById('history');
+    const historyList  = document.getElementById('historyList');
+    const footerStats  = document.getElementById('footerStats');
+    const waveformCanvas = document.getElementById('waveform');
 
     const MAX_CHARS    = 1000;
     const WARN_CHARS   = 800;
     const HISTORY_KEY  = 'tts-history';
     const HISTORY_MAX  = 5;
     const THEME_KEY    = 'tts-theme';
+    const STREAM_KEY   = 'tts-stream';
 
     let currentBlob = null;
     let currentUrl  = null;
+    let cancelStream = false;
 
-    // ───────── Theme toggle ─────────
+    // ───────── Theme ─────────
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
       themeBtn.textContent = theme === 'light' ? 'Dark' : 'Light';
@@ -245,7 +268,7 @@
       applyTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    // ───────── Character counter ─────────
+    // ───────── Char counter ─────────
     function updateCharCount() {
       const n = textbox.value.length;
       charCount.textContent = `${n} / ${MAX_CHARS}`;
@@ -255,9 +278,15 @@
     textbox.addEventListener('input', updateCharCount);
     updateCharCount();
 
-    // ───────── Speed slider live label ─────────
+    // ───────── Speed ─────────
     speedInput.addEventListener('input', () => {
       speedValue.textContent = parseFloat(speedInput.value).toFixed(1) + 'x';
+    });
+
+    // ───────── Stream toggle ─────────
+    streamToggle.checked = localStorage.getItem(STREAM_KEY) === 'true';
+    streamToggle.addEventListener('change', () => {
+      localStorage.setItem(STREAM_KEY, String(streamToggle.checked));
     });
 
     // ───────── Examples ─────────
@@ -274,9 +303,7 @@
       try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
       catch { return []; }
     }
-    function saveHistory(arr) {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
-    }
+    function saveHistory(arr) { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
     function addToHistory(text) {
       let h = loadHistory().filter(t => t !== text);
       h.unshift(text);
@@ -303,6 +330,16 @@
     }
     renderHistory();
 
+    // ───────── Stats ─────────
+    async function refreshStats() {
+      try {
+        const r = await fetch('/api/stats');
+        const s = await r.json();
+        footerStats.textContent = `${s.requests} synthesis${s.requests === 1 ? '' : 'es'} this session`;
+      } catch { footerStats.textContent = ''; }
+    }
+    refreshStats();
+
     // ───────── Synthesis core ─────────
     function setBusy(busy) {
       speakBtn.disabled = busy;
@@ -320,22 +357,87 @@
       return res.blob();
     }
 
+    function splitSentences(text) {
+      const matches = text.match(/[^.!?]+[.!?]+\s*/g);
+      if (!matches || matches.length === 0) return [text];
+      return matches.map(s => s.trim()).filter(Boolean);
+    }
+
+    async function speakWhole(text, voice, speed) {
+      status.textContent = 'Synthesizing...';
+      const blob = await synthesize(text, voice, speed);
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+      currentBlob = blob;
+      currentUrl  = URL.createObjectURL(blob);
+      player.src = currentUrl;
+      await player.play();
+      status.textContent = 'Playing...';
+      downloadBtn.disabled = false;
+    }
+
+    async function speakStreaming(text, voice, speed) {
+      const sentences = splitSentences(text);
+      const queue = [];
+      cancelStream = false;
+      let producerDone = false;
+
+      // Producer: fetch each sentence in order
+      const produce = (async () => {
+        for (let i = 0; i < sentences.length; i++) {
+          if (cancelStream) return;
+          try {
+            const blob = await synthesize(sentences[i], voice, speed);
+            queue.push(blob);
+          } catch (e) {
+            status.textContent = 'Error: ' + e.message;
+            cancelStream = true;
+            return;
+          }
+        }
+        producerDone = true;
+      })();
+
+      // Consumer: play sentences as they arrive
+      let firstPlayed = false;
+      while (!cancelStream) {
+        if (queue.length === 0) {
+          if (producerDone) break;
+          await new Promise(r => setTimeout(r, 50));
+          continue;
+        }
+        const blob = queue.shift();
+        if (!firstPlayed) {
+          firstPlayed = true;
+          status.textContent = 'Playing...';
+        }
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentBlob = blob;
+        currentUrl  = URL.createObjectURL(blob);
+        player.src = currentUrl;
+        await new Promise((resolve) => {
+          player.onended = resolve;
+          player.onerror = resolve;
+          player.play().catch(resolve);
+        });
+      }
+      // Final download blob = the last one (or you could merge — keep simple)
+      downloadBtn.disabled = !currentBlob;
+      await produce;
+    }
+
     async function speak() {
       const text = textbox.value.trim();
       if (!text) return;
       setBusy(true);
       downloadBtn.disabled = true;
-      status.textContent = 'Synthesizing...';
       try {
-        const blob = await synthesize(text, voiceSelect.value, parseFloat(speedInput.value));
-        if (currentUrl) URL.revokeObjectURL(currentUrl);
-        currentBlob = blob;
-        currentUrl  = URL.createObjectURL(blob);
-        player.src = currentUrl;
-        await player.play();
-        status.textContent = 'Playing...';
-        downloadBtn.disabled = false;
+        if (streamToggle.checked) {
+          await speakStreaming(text, voiceSelect.value, parseFloat(speedInput.value));
+        } else {
+          await speakWhole(text, voiceSelect.value, parseFloat(speedInput.value));
+        }
         addToHistory(text);
+        refreshStats();
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         setBusy(false);
@@ -343,6 +445,7 @@
     }
 
     function stop() {
+      cancelStream = true;
       player.pause();
       player.currentTime = 0;
       status.textContent = 'Stopped.';
@@ -367,11 +470,7 @@
       previewBtn.textContent = 'Loading...';
       status.textContent = 'Previewing voice...';
       try {
-        const blob = await synthesize(
-          'Hello, this is a sample of this voice.',
-          voiceSelect.value,
-          1.0
-        );
+        const blob = await synthesize('Hello, this is a sample of this voice.', voiceSelect.value, 1.0);
         if (currentUrl) URL.revokeObjectURL(currentUrl);
         currentUrl = URL.createObjectURL(blob);
         player.src = currentUrl;
@@ -395,8 +494,10 @@
       textbox.focus();
     });
     player.addEventListener('ended', () => {
-      status.textContent = 'Done.';
-      setBusy(false);
+      if (!streamToggle.checked) {
+        status.textContent = 'Done.';
+        setBusy(false);
+      }
     });
 
     // ───────── Keyboard shortcuts ─────────
@@ -408,6 +509,71 @@
         stop();
       }
     });
+
+    // ───────── Waveform visualization ─────────
+    let audioCtx = null;
+    let analyser = null;
+    let waveformActive = false;
+
+    function setupWaveform() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaElementSource(player);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+      } catch (e) {
+        console.warn('Waveform setup failed:', e);
+      }
+    }
+
+    function drawWaveform() {
+      if (!analyser) return;
+      const ctx = waveformCanvas.getContext('2d');
+      const width = waveformCanvas.width = waveformCanvas.offsetWidth * window.devicePixelRatio;
+      const height = waveformCanvas.height = waveformCanvas.offsetHeight * window.devicePixelRatio;
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const barCount = data.length;
+      const barWidth = width / barCount;
+
+      function loop() {
+        if (!waveformActive) {
+          ctx.clearRect(0, 0, width, height);
+          return;
+        }
+        analyser.getByteFrequencyData(data);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = accent;
+        for (let i = 0; i < barCount; i++) {
+          const v = data[i] / 255;
+          const barHeight = v * height * 0.9;
+          const x = i * barWidth;
+          ctx.fillRect(x + 1, height - barHeight, barWidth - 2, barHeight);
+        }
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    player.addEventListener('play', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      setupWaveform();
+      waveformActive = true;
+      drawWaveform();
+    });
+    player.addEventListener('pause', () => { waveformActive = false; });
+    player.addEventListener('ended', () => { waveformActive = false; });
+
+    // ───────── Service worker ─────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>

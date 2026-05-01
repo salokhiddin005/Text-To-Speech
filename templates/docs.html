@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Docs - Text to Speech</title>
+  <style>
+    :root { --bg: #0f172a; --bg-card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --accent: #2563eb; --code-bg: #020617; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .container { max-width: 880px; margin: 0 auto; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 20px; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    h3 { font-size: 16px; margin: 24px 0 8px; }
+    a { color: var(--accent); }
+    .lead { color: var(--muted); margin-bottom: 16px; }
+    .endpoint { display: inline-block; padding: 4px 10px; border-radius: 6px;
+                background: var(--accent); color: white; font-family: monospace; font-size: 13px; }
+    pre, code { font-family: "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+    pre { background: var(--code-bg); padding: 16px; border-radius: 10px; overflow-x: auto;
+          border: 1px solid var(--border); font-size: 13px; }
+    code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--bg-card); border: 1px solid var(--border); }
+    .nav { display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px; }
+    .nav a { color: var(--muted); text-decoration: none; }
+    .nav a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <a href="/">&larr; Back to app</a>
+      <a href="/api/voices" target="_blank">/api/voices (live)</a>
+      <a href="/api/stats" target="_blank">/api/stats (live)</a>
+    </div>
+
+    <h1>Text-to-Speech API</h1>
+    <p class="lead">A simple HTTP API for synthesizing speech from text. CPU-only inference, no GPU required, no signup, no API key.</p>
+
+    <h2>Quick example</h2>
+    <pre>curl -X POST https://your-deployment-url/api/speak \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "voice": "en_US-amy-medium", "speed": 1.0}' \
+  --output speech.wav</pre>
+
+    <h2>Endpoints</h2>
+
+    <h3><span class="endpoint">POST</span> <code>/api/speak</code></h3>
+    <p>Synthesize text into a WAV audio file.</p>
+    <p><strong>Request body (JSON):</strong></p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+      <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The text to synthesize.</td></tr>
+      <tr><td><code>voice</code></td><td>string</td><td>no</td><td>Voice ID (default: <code>en_US-amy-medium</code>). See <code>/api/voices</code>.</td></tr>
+      <tr><td><code>speed</code></td><td>float</td><td>no</td><td>Speed multiplier 0.5 to 2.0 (default 1.0).</td></tr>
+    </table>
+    <p><strong>Response:</strong> <code>audio/wav</code> binary stream.</p>
+    <p><strong>Errors:</strong> <code>400</code> for empty text or unknown voice.</p>
+
+    <h3><span class="endpoint">GET</span> <code>/api/voices</code></h3>
+    <p>List all configured voices and which ones are currently installed.</p>
+    <pre>{
+  "default": "en_US-amy-medium",
+  "voices": [
+    {"id": "en_US-amy-medium", "name": "Amy - English (US Female)", "available": true},
+    ...
+  ]
+}</pre>
+
+    <h3><span class="endpoint">GET</span> <code>/api/stats</code></h3>
+    <p>In-memory usage stats since the server last started.</p>
+    <pre>{"requests": 42, "by_voice": {"en_US-amy-medium": 30, "es_ES-davefx-medium": 12}, "started_at": "..."}</pre>
+
+    <h2>Available voices</h2>
+    <table>
+      <tr><th>ID</th><th>Description</th></tr>
+      {% for voice_id, voice_name in voices.items() %}
+      <tr><td><code>{{ voice_id }}</code></td><td>{{ voice_name }}</td></tr>
+      {% endfor %}
+    </table>
+
+    <h2>Code examples</h2>
+
+    <h3>Python</h3>
+    <pre>import requests
+
+response = requests.post(
+    "https://your-deployment-url/api/speak",
+    json={"text": "Hello world", "voice": "en_US-amy-medium", "speed": 1.0},
+)
+with open("speech.wav", "wb") as f:
+    f.write(response.content)</pre>
+
+    <h3>JavaScript</h3>
+    <pre>const res = await fetch("/api/speak", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ text: "Hello world", voice: "en_US-amy-medium", speed: 1.0 }),
+});
+const blob = await res.blob();
+new Audio(URL.createObjectURL(blob)).play();</pre>
+
+    <h2>Notes</h2>
+    <ul>
+      <li>No API key, no rate limits (yet).</li>
+      <li>First request to each new voice loads the model from disk (~1-2 seconds). Subsequent requests are fast.</li>
+      <li>Source: <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank">github.com/salokhiddin005/Text-To-Speech</a></li>
+    </ul>
+  </div>
+</body>
+</html>
