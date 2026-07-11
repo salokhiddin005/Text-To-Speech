@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+models/
+output.wav
+*.egg-info/
+.vscode/
+.idea/
+hf-space/
+flask-space/
+.git/
+.github/
+tests/
+docs/
+*.md
+render.yaml

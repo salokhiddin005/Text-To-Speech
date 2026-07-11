@@ -72,6 +72,15 @@ ruff check .          # lint
 ruff format .         # auto-format
 ```
 
+## Quick start (Docker)
+
+```bash
+docker build -t tts .
+docker run -p 5000:5000 tts
+```
+
+Visit `http://localhost:5000`. The image bundles all 12 voice models at build time, so no separate download step or network access is needed at runtime.
+
 ## Public REST API
 
 Documentation is auto-served at `/docs` on any deployment.
