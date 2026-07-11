@@ -39,11 +39,12 @@
     </div>
 
     <h1>Text-to-Speech API</h1>
-    <p class="lead">A simple HTTP API for synthesizing speech from text. CPU-only inference, no GPU required, no signup, no API key.</p>
+    <p class="lead">A simple HTTP API for synthesizing speech from text. CPU-only inference, no GPU required. Requires an API key — contact the maintainer to get one.</p>
 
     <h2>Quick example</h2>
     <pre>curl -X POST https://your-deployment-url/api/speak \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
   -d '{"text": "Hello world", "voice": "en_US-amy-medium", "speed": 1.0}' \
   --output speech.wav</pre>
 
@@ -51,6 +52,11 @@
 
     <h3><span class="endpoint">POST</span> <code>/api/speak</code></h3>
     <p>Synthesize text into a WAV audio file.</p>
+    <p><strong>Headers:</strong></p>
+    <table>
+      <tr><th>Header</th><th>Required</th><th>Description</th></tr>
+      <tr><td><code>X-API-Key</code></td><td>yes</td><td>Your API key.</td></tr>
+    </table>
     <p><strong>Request body (JSON):</strong></p>
     <table>
       <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
@@ -59,7 +65,7 @@
       <tr><td><code>speed</code></td><td>float</td><td>no</td><td>Speed multiplier 0.5 to 2.0 (default 1.0).</td></tr>
     </table>
     <p><strong>Response:</strong> <code>audio/wav</code> binary stream.</p>
-    <p><strong>Errors:</strong> <code>400</code> for empty text or unknown voice.</p>
+    <p><strong>Errors:</strong> <code>401</code> for a missing/invalid API key, <code>400</code> for empty text or unknown voice.</p>
 
     <h3><span class="endpoint">GET</span> <code>/api/voices</code></h3>
     <p>List all configured voices and which ones are currently installed.</p>
@@ -90,6 +96,7 @@
 
 response = requests.post(
     "https://your-deployment-url/api/speak",
+    headers={"X-API-Key": "your-api-key"},
     json={"text": "Hello world", "voice": "en_US-amy-medium", "speed": 1.0},
 )
 with open("speech.wav", "wb") as f:
@@ -98,7 +105,7 @@ with open("speech.wav", "wb") as f:
     <h3>JavaScript</h3>
     <pre>const res = await fetch("/api/speak", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   body: JSON.stringify({ text: "Hello world", voice: "en_US-amy-medium", speed: 1.0 }),
 });
 const blob = await res.blob();
@@ -106,7 +113,7 @@ new Audio(URL.createObjectURL(blob)).play();</pre>
 
     <h2>Notes</h2>
     <ul>
-      <li>No API key, no rate limits (yet).</li>
+      <li>Requires an <code>X-API-Key</code> header. Rate-limited to 30 requests/minute per API key's caller IP.</li>
       <li>First request to each new voice loads the model from disk (~1-2 seconds). Subsequent requests are fast.</li>
       <li>Source: <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank">github.com/salokhiddin005/Text-To-Speech</a></li>
     </ul>

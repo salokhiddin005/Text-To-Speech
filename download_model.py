@@ -20,7 +20,7 @@ VOICES = [
     ("de_DE-thorsten-medium", "de/de_DE/thorsten/medium"),
     ("it_IT-paola-medium", "it/it_IT/paola/medium"),
     ("pt_BR-faber-medium", "pt/pt_BR/faber/medium"),
-    ("ru_RU-irinia-medium", "ru/ru_RU/irinia/medium"),
+    ("ru_RU-irina-medium", "ru/ru_RU/irina/medium"),
     ("ar_JO-kareem-medium", "ar/ar_JO/kareem/medium"),
 ]
 BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"

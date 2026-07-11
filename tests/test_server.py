@@ -1,6 +1,8 @@
 import pytest
 
-from server import app
+from server import API_KEYS, app
+
+VALID_KEY = next(iter(API_KEYS))
 
 
 @pytest.fixture
@@ -26,13 +28,27 @@ def test_voices_endpoint(client):
     assert all("id" in v and "name" in v for v in data["voices"])
 
 
+def test_speak_missing_api_key(client):
+    res = client.post("/api/speak", json={"text": "hi"})
+    assert res.status_code == 401
+
+
+def test_speak_invalid_api_key(client):
+    res = client.post("/api/speak", json={"text": "hi"}, headers={"X-API-Key": "wrong-key"})
+    assert res.status_code == 401
+
+
 def test_speak_empty_text(client):
-    res = client.post("/api/speak", json={"text": ""})
+    res = client.post("/api/speak", json={"text": ""}, headers={"X-API-Key": VALID_KEY})
     assert res.status_code == 400
 
 
 def test_speak_unknown_voice(client):
-    res = client.post("/api/speak", json={"text": "hi", "voice": "no_such_voice"})
+    res = client.post(
+        "/api/speak",
+        json={"text": "hi", "voice": "no_such_voice"},
+        headers={"X-API-Key": VALID_KEY},
+    )
     assert res.status_code == 400
 
 

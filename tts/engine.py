@@ -29,7 +29,7 @@ VOICES = {
     "de_DE-thorsten-medium": "Thorsten - German",
     "it_IT-paola-medium": "Paola - Italian",
     "pt_BR-faber-medium": "Faber - Portuguese (Brazil)",
-    "ru_RU-irinia-medium": "Irina - Russian",
+    "ru_RU-irina-medium": "Irina - Russian",
     "ar_JO-kareem-medium": "Kareem - Arabic",
 }
 

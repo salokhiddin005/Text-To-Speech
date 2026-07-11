@@ -83,18 +83,34 @@ Visit `http://localhost:5000`. The image bundles all 12 voice models at build ti
 
 ## Public REST API
 
-Documentation is auto-served at `/docs` on any deployment.
+Documentation is auto-served at `/docs` on any deployment. `/api/speak` requires an API key.
 
 ```bash
-curl -X POST https://huggingface.co/spaces/saloxiddin005/tts-flask/api/speak \
+curl -X POST https://saloxiddin005-tts-flask.hf.space/api/speak \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
   -d '{"text":"Hola mundo","voice":"es_ES-davefx-medium","speed":1.0}' \
   --output speech.wav
 ```
 
+### API keys
+
+`/api/speak` (the endpoint meant for outside integrations) requires an `X-API-Key`
+header. The website's own text box does not use this endpoint, so the API key has
+no effect on normal browser use.
+
+Set the `API_KEYS` environment variable (comma-separated for multiple keys) on
+your deployment to issue stable keys. If unset, the server generates one random
+key at startup and logs it — fine for local testing, but it changes every restart.
+
+```powershell
+$env:API_KEYS = "some-long-random-string"
+python server.py
+```
+
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/speak` | POST | Synthesize text → WAV (rate-limited 30/min/IP) |
+| `/api/speak` | POST | Synthesize text → WAV (requires `X-API-Key`, rate-limited 30/min/IP) |
 | `/api/voices` | GET | List all configured voices and which are installed |
 | `/api/stats` | GET | Request counter and cache hit rate |
 | `/health` | GET | Liveness check |

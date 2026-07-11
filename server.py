@@ -7,10 +7,11 @@ PORT environment variable to override the default of 5000.
 import io
 import logging
 import os
+import secrets
 import socket
 import threading
 from datetime import datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
 
 from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from flask_limiter import Limiter
@@ -24,6 +25,41 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _load_api_keys() -> set[str]:
+    """API keys gate the public /api/speak endpoint (not the website's own /speak).
+
+    Configure via the API_KEYS env var (comma-separated) for a stable key across
+    restarts. If unset, a random key is generated for this process and logged —
+    fine for local testing, but callers will need a new key every restart.
+    """
+    raw = os.environ.get("API_KEYS", "")
+    keys = {k.strip() for k in raw.split(",") if k.strip()}
+    if not keys:
+        generated = secrets.token_urlsafe(24)
+        keys = {generated}
+        logger.warning(
+            "API_KEYS not set - generated a temporary key for this run: %s "
+            "(set the API_KEYS env var for a key that survives restarts)",
+            generated,
+        )
+    return keys
+
+
+API_KEYS = _load_api_keys()
+
+
+def require_api_key(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        key = request.headers.get("X-API-Key")
+        if key not in API_KEYS:
+            return jsonify(error="missing or invalid API key"), 401
+        return view(*args, **kwargs)
+
+    return wrapped
+
 
 app = Flask(__name__, static_folder="static")
 engine = TTSEngine()
@@ -115,8 +151,10 @@ def speak():
 
 @app.route("/api/speak", methods=["POST"])
 @limiter.limit("30 per minute")
+@require_api_key
 def api_speak():
-    """Public API endpoint — same as /speak but documented at /docs."""
+    """Public API endpoint — same as /speak but documented at /docs, and requires
+    an X-API-Key header (see API_KEYS env var)."""
     payload = request.get_json(silent=True) or {}
     audio, err = _do_speak(payload)
     if err:
