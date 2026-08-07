@@ -209,3 +209,24 @@ def test_synthesis_limit_is_enforced_per_visitor():
     finally:
         limiter.enabled = False
         limiter.reset()
+
+
+def test_rate_limited_response_says_when_to_retry():
+    """Without Retry-After the page can only say 'a while', which is useless
+    when the allowance is small."""
+    app.config["TESTING"] = True
+    limiter.enabled = True
+    limiter.reset()
+    try:
+        with app.test_client() as c:
+            headers = {"X-API-Key": TEST_API_KEY, "X-Forwarded-For": "203.0.113.30"}
+            last = None
+            for _ in range(7):
+                last = c.post("/api/speak", json={"text": ""}, headers=headers)
+            assert last.status_code == 429
+            retry = last.headers.get("Retry-After")
+            assert retry is not None, "no Retry-After on a 429"
+            assert 0 < int(retry) <= 3600
+    finally:
+        limiter.enabled = False
+        limiter.reset()

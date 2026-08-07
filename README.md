@@ -5,7 +5,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://huggingface.co/spaces/saloxiddin005/tts-flask)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org)
 
-A free, on-device text-to-speech system with **12 voices across 7 languages**, running on laptops, Android phones, and as a public web app. CPU-only, no GPU required.
+A free, on-device text-to-speech system with **12 voices across 8 languages**, running on laptops, Android phones, and as a public web app. CPU-only, no GPU required.
 
 **Try it now:** [huggingface.co/spaces/saloxiddin005/tts-flask](https://huggingface.co/spaces/saloxiddin005/tts-flask)
 
@@ -22,7 +22,7 @@ A free, on-device text-to-speech system with **12 voices across 7 languages**, r
 
 ## Features
 
-- **12 voices, 7 languages**: English (US/UK), Spanish, French, German, Italian, Portuguese, Russian, Arabic
+- **12 voices, 8 languages**: English (US/UK), Spanish, French, German, Italian, Portuguese, Russian, Arabic
 - **Adjustable speed** (0.5x to 2x), live preview, and per-voice playback test
 - **Streaming mode** — long text starts speaking after the first sentence finishes synthesizing
 - **Audio waveform visualization** during playback

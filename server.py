@@ -166,6 +166,10 @@ limiter = Limiter(
     app=app,
     default_limits=["60 per minute"],
     storage_uri="memory://",
+    # Sends Retry-After and X-RateLimit-*; without them a refused caller has no
+    # way to know when their allowance returns, and the page can only say
+    # "try again later" rather than naming a time.
+    headers_enabled=True,
 )
 
 _stats_lock = threading.Lock()

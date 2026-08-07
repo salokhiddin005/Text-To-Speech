@@ -9,3 +9,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      # Declared here so a deploy prompts for the value instead of the endpoint
+      # silently staying disabled. Left unset, /api/speak returns 503 and
+      # /health reports api_configured false.
+      - key: API_KEYS
+        sync: false
+      # Signs page tokens; generated per process when unset, which would
+      # invalidate outstanding tokens on every restart.
+      - key: SECRET_KEY
+        generateValue: true

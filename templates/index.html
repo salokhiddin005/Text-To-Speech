@@ -308,7 +308,7 @@
         </div>
         <div>
           <h1>Text to Speech</h1>
-          <p class="tagline">12 neural voices &middot; 7 languages &middot; runs on CPU</p>
+          <p class="tagline">12 neural voices &middot; 8 languages &middot; runs on CPU</p>
         </div>
       </div>
       <div class="header-actions">
@@ -573,6 +573,26 @@
       }
     }
 
+    // Hitting the hourly allowance is an ordinary thing for a visitor to do, so
+    // these need to read as explanations rather than as status codes.
+    async function describeFailure(res) {
+      if (res.status === 429) {
+        const retry = parseInt(res.headers.get('Retry-After') || '', 10);
+        const when = Number.isFinite(retry) && retry > 0
+          ? (retry < 90 ? `${retry} seconds` : `${Math.ceil(retry / 60)} minutes`)
+          : 'a while';
+        return `You have used all your turns for now. Try again in ${when}.`;
+      }
+      if (res.status === 413) return `That text is too long — keep it under ${MAX_CHARS} characters.`;
+      if (res.status === 503) {
+        const body = await res.json().catch(() => ({}));
+        return body.error || 'That voice is unavailable on this server right now.';
+      }
+      if (res.status >= 500) return 'The server had a problem. Please try again.';
+      const body = await res.json().catch(() => ({}));
+      return body.error || `Request failed (${res.status}).`;
+    }
+
     async function synthesize(text, voice, speed) {
       const res = await fetch('/speak', {
         method: 'POST',
@@ -595,10 +615,14 @@
             } else {
               status.textContent = 'Session expired. Please reload the page.';
             }
-            throw new Error('page token expired');
+            // Status is already set above; flagged so the caller does not
+            // overwrite it with a less useful message.
+            const handled = new Error('page token expired');
+            handled.statusShown = true;
+            throw handled;
           }
         }
-        throw new Error(`server error ${res.status}`);
+        throw new Error(await describeFailure(res));
       }
       sessionStorage.removeItem(RELOADED_KEY);
       return res.blob();
@@ -649,7 +673,7 @@
             const blob = await synthesize(sentences[i], voice, speed);
             queue.push(blob);
           } catch (e) {
-            status.textContent = 'Error: ' + e.message;
+            if (!e.statusShown) status.textContent = e.message;
             cancelStream = true;
             return;
           }
@@ -695,7 +719,7 @@
         }
         addToHistory(text);
       } catch (err) {
-        status.textContent = 'Error: ' + err.message;
+        if (!err.statusShown) status.textContent = err.message;
         setBusy(false);
       }
     }
@@ -733,7 +757,7 @@
         await player.play();
         status.textContent = 'Playing preview...';
       } catch (err) {
-        status.textContent = 'Preview error: ' + err.message;
+        if (!err.statusShown) status.textContent = err.message;
       } finally {
         previewBtn.textContent = original;
         previewBtn.disabled = false;
@@ -802,6 +826,7 @@
       const barWidth = width / barCount;
       const mid = height / 2;
       const radius = Math.min(barWidth - gap, 6 * window.devicePixelRatio) / 2;
+      const hasRoundRect = typeof ctx.roundRect === 'function';
 
       function loop() {
         if (!waveformActive) {
@@ -824,9 +849,16 @@
           const v = data[i] / 255;
           if (v < 0.03) continue;            // silence stays on the baseline
           const half = Math.max(v * height * 0.42, lineH);
-          ctx.beginPath();
-          ctx.roundRect(i * barWidth + gap / 2, mid - half, w, half * 2, radius);
-          ctx.fill();
+          const x = i * barWidth + gap / 2;
+          if (hasRoundRect) {
+            ctx.beginPath();
+            ctx.roundRect(x, mid - half, w, half * 2, radius);
+            ctx.fill();
+          } else {
+            // roundRect landed in Safari 16; square bars beat a thrown
+            // exception killing the animation loop on older browsers.
+            ctx.fillRect(x, mid - half, w, half * 2);
+          }
         }
         requestAnimationFrame(loop);
       }
