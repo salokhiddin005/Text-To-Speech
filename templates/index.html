@@ -226,29 +226,6 @@
     input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
     .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
 
-    /* ───────── Streaming switch ───────── */
-    .switch-row {
-      display: flex; align-items: flex-start; gap: 11px; margin-top: 18px;
-      padding-top: 16px; border-top: 1px solid var(--border);
-    }
-    .switch { position: relative; flex: none; width: 38px; height: 22px; margin-top: 1px; }
-    .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
-    .switch .track {
-      position: absolute; inset: 0; border-radius: 999px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      transition: background .18s, border-color .18s;
-    }
-    .switch .track::after {
-      content: ''; position: absolute; top: 3px; left: 3px;
-      width: 14px; height: 14px; border-radius: 50%;
-      background: var(--text-muted); transition: transform .18s, background .18s;
-    }
-    .switch input:checked ~ .track { background: var(--accent); border-color: var(--accent); }
-    .switch input:checked ~ .track::after { transform: translateX(16px); background: #fff; }
-    .switch input:focus-visible ~ .track { box-shadow: 0 0 0 3px var(--accent-soft); }
-    .switch-label { font-size: 13px; color: var(--text); margin: 0; font-weight: 500; }
-    .switch-hint { font-size: 12px; color: var(--text-muted); margin: 1px 0 0; }
-
     /* ───────── Output ───────── */
     /* Placeholder sits under the canvas and hides once bars are drawing, so the
        output area reads as waiting rather than as an empty box. */
@@ -398,16 +375,6 @@
             <div class="scale"><span>0.5x</span><span>2.0x</span></div>
           </div>
 
-          <div class="switch-row">
-            <span class="switch">
-              <input type="checkbox" id="streamToggle">
-              <span class="track" aria-hidden="true"></span>
-            </span>
-            <div>
-              <label class="switch-label" for="streamToggle" style="margin:0; cursor:pointer">Stream sentence by sentence</label>
-              <p class="switch-hint">Starts playing sooner on long text.</p>
-            </div>
-          </div>
         </section>
 
         <section class="card history" id="history" style="display:none">
@@ -426,7 +393,6 @@
     const previewBtn   = document.getElementById('previewBtn');
     const speedInput   = document.getElementById('speed');
     const speedValue   = document.getElementById('speedValue');
-    const streamToggle = document.getElementById('streamToggle');
     const speakBtn     = document.getElementById('speakBtn');
     const stopBtn      = document.getElementById('stopBtn');
     const downloadBtn  = document.getElementById('downloadBtn');
@@ -445,12 +411,10 @@
     const HISTORY_KEY  = 'tts-history';
     const HISTORY_MAX  = 5;
     const THEME_KEY    = 'tts-theme';
-    const STREAM_KEY   = 'tts-stream';
     const RELOADED_KEY = 'tts-token-reloaded';
 
     let currentBlob = null;
     let currentUrl  = null;
-    let cancelStream = false;
     let isBusy = false;
 
     // Speak is blocked while a request is in flight *or* the text is over the
@@ -497,12 +461,6 @@
     }
     speedInput.addEventListener('input', updateSpeed);
     updateSpeed();
-
-    // ───────── Stream toggle ─────────
-    streamToggle.checked = localStorage.getItem(STREAM_KEY) === 'true';
-    streamToggle.addEventListener('change', () => {
-      localStorage.setItem(STREAM_KEY, String(streamToggle.checked));
-    });
 
     // ───────── Examples ─────────
     document.querySelectorAll('.examples button').forEach((btn) => {
@@ -628,12 +586,6 @@
       return res.blob();
     }
 
-    function splitSentences(text) {
-      const matches = text.match(/[^.!?]+[.!?]+\s*/g);
-      if (!matches || matches.length === 0) return [text];
-      return matches.map(s => s.trim()).filter(Boolean);
-    }
-
     // Download needs only the blob, so arm it the moment synthesis lands rather
     // than after playback starts — play() can reject (autoplay policies, audio
     // device issues) and that would otherwise strand finished audio as
@@ -659,64 +611,13 @@
       }
     }
 
-    async function speakStreaming(text, voice, speed) {
-      const sentences = splitSentences(text);
-      const queue = [];
-      cancelStream = false;
-      let producerDone = false;
-
-      // Producer: fetch each sentence in order
-      const produce = (async () => {
-        for (let i = 0; i < sentences.length; i++) {
-          if (cancelStream) return;
-          try {
-            const blob = await synthesize(sentences[i], voice, speed);
-            queue.push(blob);
-          } catch (e) {
-            if (!e.statusShown) status.textContent = e.message;
-            cancelStream = true;
-            return;
-          }
-        }
-        producerDone = true;
-      })();
-
-      // Consumer: play sentences as they arrive
-      let firstPlayed = false;
-      while (!cancelStream) {
-        if (queue.length === 0) {
-          if (producerDone) break;
-          await new Promise(r => setTimeout(r, 50));
-          continue;
-        }
-        const blob = queue.shift();
-        if (!firstPlayed) {
-          firstPlayed = true;
-          status.textContent = 'Playing...';
-        }
-        setCurrentAudio(blob);
-        await new Promise((resolve) => {
-          player.onended = resolve;
-          player.onerror = resolve;
-          player.play().catch(resolve);
-        });
-      }
-      // Final download blob = the last one (or you could merge — keep simple)
-      downloadBtn.disabled = !currentBlob;
-      await produce;
-    }
-
     async function speak() {
       const text = textbox.value.trim();
       if (!text) return;
       setBusy(true);
       downloadBtn.disabled = true;
       try {
-        if (streamToggle.checked) {
-          await speakStreaming(text, voiceSelect.value, parseFloat(speedInput.value));
-        } else {
-          await speakWhole(text, voiceSelect.value, parseFloat(speedInput.value));
-        }
+        await speakWhole(text, voiceSelect.value, parseFloat(speedInput.value));
         addToHistory(text);
       } catch (err) {
         if (!err.statusShown) status.textContent = err.message;
@@ -725,7 +626,6 @@
     }
 
     function stop() {
-      cancelStream = true;
       player.pause();
       player.currentTime = 0;
       status.textContent = 'Stopped.';
@@ -774,10 +674,8 @@
       textbox.focus();
     });
     player.addEventListener('ended', () => {
-      if (!streamToggle.checked) {
-        status.textContent = 'Done.';
-        setBusy(false);
-      }
+      status.textContent = 'Done.';
+      setBusy(false);
     });
 
     // ───────── Keyboard shortcuts ─────────
