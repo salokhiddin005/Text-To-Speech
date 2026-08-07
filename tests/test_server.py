@@ -79,6 +79,12 @@ def test_speak_rejects_expired_page_token(client):
     assert res.json["code"] == "bad_page_token"
 
 
+def test_index_is_not_cacheable(client):
+    """The page carries a per-visit token; a cached copy serves a stale one."""
+    res = client.get("/")
+    assert "no-store" in res.headers.get("Cache-Control", "")
+
+
 def test_index_serves_a_working_page_token(client):
     """The token embedded in the page must be one /speak actually accepts."""
     page = client.get("/").data.decode()

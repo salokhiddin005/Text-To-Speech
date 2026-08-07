@@ -17,7 +17,15 @@ from datetime import UTC, datetime
 from functools import lru_cache, wraps
 from urllib.parse import urlparse
 
-from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
+from flask import (
+    Flask,
+    jsonify,
+    make_response,
+    render_template,
+    request,
+    send_file,
+    send_from_directory,
+)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -171,12 +179,17 @@ def _synthesize_cached(text: str, voice_id: str, length_scale: float) -> bytes:
 
 @app.route("/")
 def index():
-    return render_template(
+    page = render_template(
         "index.html",
         voices=VOICES,
         default_voice=DEFAULT_VOICE_ID,
         page_token=mint_page_token(),
     )
+    response = make_response(page)
+    # This page carries a per-visit token, so it must never be served from a
+    # browser or CDN cache — a stale copy hands out an expired token.
+    response.headers["Cache-Control"] = "no-store, must-revalidate"
+    return response
 
 
 @app.route("/docs")

@@ -361,7 +361,23 @@
     }
 
     // Issued by the server when this page was rendered; /speak requires it.
-    const PAGE_TOKEN = document.querySelector('meta[name="page-token"]').content;
+    // A browser still holding a pre-token cached copy has no such tag — recover
+    // by dropping the old service worker and reloading, rather than throwing
+    // here and leaving every control below this line unbound.
+    const tokenMeta = document.querySelector('meta[name="page-token"]');
+    const PAGE_TOKEN = tokenMeta ? tokenMeta.content : '';
+    if (!PAGE_TOKEN && !sessionStorage.getItem(RELOADED_KEY)) {
+      sessionStorage.setItem(RELOADED_KEY, '1');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then(rs => Promise.all(rs.map(r => r.unregister())))
+          .then(() => caches.keys())
+          .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+          .finally(() => location.reload(true));
+      } else {
+        location.reload(true);
+      }
+    }
 
     async function synthesize(text, voice, speed) {
       const res = await fetch('/speak', {
