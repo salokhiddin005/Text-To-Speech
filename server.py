@@ -61,8 +61,39 @@ def require_api_key(view):
     return wrapped
 
 
+ALLOWED_ORIGINS = {
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://text-to-speech-x2rf.onrender.com",
+    "https://saloxiddin005-tts-flask.hf.space",
+}
+
 app = Flask(__name__, static_folder="static")
 engine = TTSEngine()
+
+
+@app.before_request
+def _block_cross_origin_speak():
+    """Let the website itself (or same-site tools) call /speak, but stop other
+    sites' client-side JS from embedding it directly — see ALLOWED_ORIGINS.
+    Non-browser callers (curl, backend scripts) don't send an Origin header at
+    all, so this doesn't affect them; that's what /api/speak + API keys are for.
+    """
+    if request.path == "/speak":
+        origin = request.headers.get("Origin")
+        if origin and origin not in ALLOWED_ORIGINS:
+            logger.warning("blocked cross-origin /speak request from %s", origin)
+            return jsonify(error="requests from this origin are not allowed"), 403
+
+
+@app.after_request
+def _apply_cors_headers(response):
+    origin = request.headers.get("Origin")
+    if request.path == "/speak" and origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+    return response
+
 
 limiter = Limiter(
     key_func=get_remote_address,

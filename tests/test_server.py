@@ -28,6 +28,21 @@ def test_voices_endpoint(client):
     assert all("id" in v and "name" in v for v in data["voices"])
 
 
+def test_speak_blocks_disallowed_origin(client):
+    res = client.post("/speak", json={"text": "hi"}, headers={"Origin": "https://evil.example.com"})
+    assert res.status_code == 403
+
+
+def test_speak_allows_no_origin(client):
+    res = client.post("/speak", json={"text": ""})
+    assert res.status_code == 400
+
+
+def test_speak_allows_known_origin(client):
+    res = client.post("/speak", json={"text": ""}, headers={"Origin": "http://localhost:5000"})
+    assert res.status_code == 400
+
+
 def test_speak_missing_api_key(client):
     res = client.post("/api/speak", json={"text": "hi"})
     assert res.status_code == 401
