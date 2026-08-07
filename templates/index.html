@@ -416,16 +416,29 @@
       return matches.map(s => s.trim()).filter(Boolean);
     }
 
-    async function speakWhole(text, voice, speed) {
-      status.textContent = 'Synthesizing...';
-      const blob = await synthesize(text, voice, speed);
+    // Download needs only the blob, so arm it the moment synthesis lands rather
+    // than after playback starts — play() can reject (autoplay policies, audio
+    // device issues) and that would otherwise strand finished audio as
+    // undownloadable. Keeping blob and URL in one place also stops them drifting
+    // apart, which previously made Download hand back the wrong clip.
+    function setCurrentAudio(blob) {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
       currentBlob = blob;
       currentUrl  = URL.createObjectURL(blob);
-      player.src = currentUrl;
-      await player.play();
-      status.textContent = 'Playing...';
+      player.src  = currentUrl;
       downloadBtn.disabled = false;
+    }
+
+    async function speakWhole(text, voice, speed) {
+      status.textContent = 'Synthesizing...';
+      setCurrentAudio(await synthesize(text, voice, speed));
+      try {
+        await player.play();
+        status.textContent = 'Playing...';
+      } catch {
+        status.textContent = 'Audio ready — press Download.';
+        setBusy(false);
+      }
     }
 
     async function speakStreaming(text, voice, speed) {
@@ -463,10 +476,7 @@
           firstPlayed = true;
           status.textContent = 'Playing...';
         }
-        if (currentUrl) URL.revokeObjectURL(currentUrl);
-        currentBlob = blob;
-        currentUrl  = URL.createObjectURL(blob);
-        player.src = currentUrl;
+        setCurrentAudio(blob);
         await new Promise((resolve) => {
           player.onended = resolve;
           player.onerror = resolve;
@@ -524,9 +534,9 @@
       status.textContent = 'Previewing voice...';
       try {
         const blob = await synthesize('Hello, this is a sample of this voice.', voiceSelect.value, 1.0);
-        if (currentUrl) URL.revokeObjectURL(currentUrl);
-        currentUrl = URL.createObjectURL(blob);
-        player.src = currentUrl;
+        // Previously this set currentUrl but left currentBlob pointing at older
+        // audio, so Download either did nothing or saved the wrong clip.
+        setCurrentAudio(blob);
         await player.play();
         status.textContent = 'Playing preview...';
       } catch (err) {
