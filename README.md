@@ -124,8 +124,21 @@ curl https://your-deployment-url/health
 | `API_KEYS` | *(unset)* | Comma-separated keys accepted by `/api/speak`. Unset disables the endpoint. |
 | `ALLOWED_ORIGINS` | *(unset)* | Extra origins allowed to call `/speak` from browser JS. Same-origin is always allowed, so this is only needed for genuine cross-origin callers. |
 | `SECRET_KEY` | *(generated)* | Signs page tokens. Only needs setting if you run more than one worker, so tokens minted by one are accepted by the others. |
+| `TRUST_PROXY` | on when `PORT` is set | Take the client address from `X-Forwarded-For` so rate limits are per visitor. Required behind a proxy; leave off when the server is reachable directly. |
 | `PORT` | `5000` | Port to bind. |
 | `LOG_LEVEL` | `INFO` | Python logging level. |
+
+## Limits
+
+| Limit | Value | Applies to |
+|---|---|---|
+| Requests | 30 per minute per visitor | `/speak` and `/api/speak` |
+| Other endpoints | 60 per minute per visitor | everything else |
+| Text length | 1000 characters per request | `/speak` and `/api/speak` |
+
+There is no daily or lifetime cap — the window is a rolling minute. Counters are
+held in memory, so they reset when the server restarts and are not shared between
+workers.
 
 ## How access is controlled
 

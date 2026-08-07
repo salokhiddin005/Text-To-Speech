@@ -28,6 +28,7 @@ from flask import (
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from tts import TTSEngine
 from tts.engine import DEFAULT_VOICE_ID, VOICES
@@ -107,6 +108,19 @@ def require_api_key(view):
 
 
 app = Flask(__name__, static_folder="static")
+
+# Behind Render and Hugging Face the address Flask sees is the platform's proxy,
+# which is the same for every visitor — so the per-IP rate limit would put the
+# whole world in one bucket and ~30 people a minute could lock everyone else out.
+# Trusting the forwarded client address restores per-visitor limits. Only x_for
+# is fixed up: request.host already resolves correctly and the origin check
+# depends on it. PORT is set by both platforms and not by a plain local run.
+TRUST_PROXY = os.environ.get(
+    "TRUST_PROXY", "1" if "PORT" in os.environ else "0"
+).strip().lower() not in ("0", "false", "no", "")
+if TRUST_PROXY:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
 engine = TTSEngine()
 
 
