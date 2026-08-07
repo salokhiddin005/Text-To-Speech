@@ -60,12 +60,20 @@
     <p><strong>Request body (JSON):</strong></p>
     <table>
       <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
-      <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The text to synthesize.</td></tr>
+      <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The text to synthesize. Max 1000 characters.</td></tr>
       <tr><td><code>voice</code></td><td>string</td><td>no</td><td>Voice ID (default: <code>en_US-amy-medium</code>). See <code>/api/voices</code>.</td></tr>
       <tr><td><code>speed</code></td><td>float</td><td>no</td><td>Speed multiplier 0.5 to 2.0 (default 1.0).</td></tr>
     </table>
     <p><strong>Response:</strong> <code>audio/wav</code> binary stream.</p>
-    <p><strong>Errors:</strong> <code>401</code> for a missing/invalid API key, <code>400</code> for empty text or unknown voice.</p>
+    <p><strong>Errors:</strong></p>
+    <table>
+      <tr><th>Status</th><th>Meaning</th></tr>
+      <tr><td><code>400</code></td><td>Empty text or unknown voice ID.</td></tr>
+      <tr><td><code>401</code></td><td>Missing or invalid API key.</td></tr>
+      <tr><td><code>413</code></td><td>Text longer than 1000 characters.</td></tr>
+      <tr><td><code>429</code></td><td>Rate limit exceeded (30/min).</td></tr>
+      <tr><td><code>503</code></td><td>Voice is listed but not installed on this server, or API keys are not configured.</td></tr>
+    </table>
 
     <h3><span class="endpoint">GET</span> <code>/api/voices</code></h3>
     <p>List all configured voices and which ones are currently installed.</p>

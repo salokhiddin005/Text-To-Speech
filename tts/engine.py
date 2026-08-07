@@ -6,6 +6,7 @@ stays in memory, which keeps RAM usage low enough for free-tier hosts (Render's
 """
 
 import io
+import threading
 import wave
 from collections.abc import Iterable
 from pathlib import Path
@@ -39,21 +40,26 @@ class TTSEngine:
         self.models_dir = Path(models_dir)
         self._cache_size = cache_size
         self._cache: dict[str, PiperVoice] = {}
+        self._lock = threading.Lock()
 
     def _get_voice(self, voice_id: str) -> PiperVoice:
-        if voice_id in self._cache:
-            return self._cache[voice_id]
         model_path = self.models_dir / f"{voice_id}.onnx"
-        if not model_path.exists():
-            raise FileNotFoundError(
-                f"Voice '{voice_id}' not found at {model_path}. "
-                f"Run download_model.py to fetch missing voices."
-            )
-        if len(self._cache) >= self._cache_size:
-            self._cache.clear()
-        voice = PiperVoice.load(str(model_path))
-        self._cache[voice_id] = voice
-        return voice
+        # The server runs multiple threads per worker. Without this lock, two
+        # threads wanting different voices can both clear the cache and load a
+        # ~150 MB model at once, which is enough to OOM a 512 MB free-tier host.
+        with self._lock:
+            if voice_id in self._cache:
+                return self._cache[voice_id]
+            if not model_path.exists():
+                raise FileNotFoundError(
+                    f"Voice '{voice_id}' not found at {model_path}. "
+                    f"Run download_model.py to fetch missing voices."
+                )
+            if len(self._cache) >= self._cache_size:
+                self._cache.clear()
+            voice = PiperVoice.load(str(model_path))
+            self._cache[voice_id] = voice
+            return voice
 
     def _make_config(self, length_scale: float):
         try:

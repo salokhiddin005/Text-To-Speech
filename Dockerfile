@@ -22,4 +22,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
     CMD python -c "import urllib.request; urllib.request.urlopen(f'http://localhost:{__import__(\"os\").environ.get(\"PORT\",5000)}/health')" || exit 1
 
-CMD gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 4 --timeout 120 server:app
+# exec form + `exec` so gunicorn becomes PID 1 and receives SIGTERM directly;
+# without it the shell holds PID 1 and the container takes ~10s to stop.
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 4 --timeout 120 server:app"]

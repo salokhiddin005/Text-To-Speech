@@ -24,6 +24,17 @@ def test_symbols_expanded():
     assert "dollar" in normalize_text("100$")
 
 
+def test_currency_reads_in_spoken_order():
+    # Written "$100", spoken "one hundred dollars" — not "dollar one hundred".
+    assert normalize_text("$100") == "one hundred dollars"
+    assert normalize_text("€50") == "fifty euros"
+    assert normalize_text("£20") == "twenty pounds"
+
+
+def test_currency_singular():
+    assert normalize_text("$1") == "one dollar"
+
+
 def test_whitespace_collapsed():
     assert normalize_text("hello   world") == "hello world"
     assert normalize_text("  hello  ").strip() == "hello"

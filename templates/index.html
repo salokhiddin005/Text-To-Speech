@@ -254,6 +254,13 @@
     let currentBlob = null;
     let currentUrl  = null;
     let cancelStream = false;
+    let isBusy = false;
+
+    // Speak is blocked while a request is in flight *or* the text is over the
+    // limit; both conditions live here so the two callers can't clobber each other.
+    function refreshSpeakEnabled() {
+      speakBtn.disabled = isBusy || textbox.value.length > MAX_CHARS;
+    }
 
     // ───────── Theme ─────────
     function applyTheme(theme) {
@@ -273,6 +280,10 @@
       charCount.textContent = `${n} / ${MAX_CHARS}`;
       charCount.classList.toggle('warn',   n > WARN_CHARS && n <= MAX_CHARS);
       charCount.classList.toggle('danger', n > MAX_CHARS);
+      // The server rejects anything past MAX_CHARS, so block the request here
+      // rather than letting it go out and come back as an error.
+      refreshSpeakEnabled();
+      if (n > MAX_CHARS) status.textContent = `Too long — trim to ${MAX_CHARS} characters.`;
     }
     textbox.addEventListener('input', updateCharCount);
     updateCharCount();
@@ -341,9 +352,10 @@
 
     // ───────── Synthesis core ─────────
     function setBusy(busy) {
-      speakBtn.disabled = busy;
+      isBusy = busy;
       stopBtn.disabled  = !busy;
       previewBtn.disabled = busy;
+      refreshSpeakEnabled();
     }
 
     async function synthesize(text, voice, speed) {

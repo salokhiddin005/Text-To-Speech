@@ -99,18 +99,38 @@ curl -X POST https://saloxiddin005-tts-flask.hf.space/api/speak \
 header. The website's own text box does not use this endpoint, so the API key has
 no effect on normal browser use.
 
-Set the `API_KEYS` environment variable (comma-separated for multiple keys) on
-your deployment to issue stable keys. If unset, the server generates one random
-key at startup and logs it — fine for local testing, but it changes every restart.
+Set the `API_KEYS` environment variable (comma-separated for multiple keys) to
+issue keys. **If it is unset, `/api/speak` returns `503` and stays disabled** —
+a deployment that forgot the variable fails loudly rather than accepting a key
+nobody was given.
 
 ```powershell
 $env:API_KEYS = "some-long-random-string"
 python server.py
 ```
 
+To check whether a running deployment picked the variable up, without exposing
+the key itself:
+
+```bash
+curl https://your-deployment-url/health
+# {"status":"ok","api_configured":true}
+```
+
+### Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `API_KEYS` | *(unset)* | Comma-separated keys accepted by `/api/speak`. Unset disables the endpoint. |
+| `ALLOWED_ORIGINS` | *(unset)* | Extra origins allowed to call `/speak` from browser JS. Same-origin is always allowed, so this is only needed for genuine cross-origin callers. |
+| `PORT` | `5000` | Port to bind. |
+| `LOG_LEVEL` | `INFO` | Python logging level. |
+
+### Endpoints
+
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/speak` | POST | Synthesize text → WAV (requires `X-API-Key`, rate-limited 30/min/IP) |
+| `/api/speak` | POST | Synthesize text → WAV (requires `X-API-Key`, max 1000 chars, rate-limited 30/min/IP) |
 | `/api/voices` | GET | List all configured voices and which are installed |
 | `/api/stats` | GET | Request counter and cache hit rate |
 | `/health` | GET | Liveness check |

@@ -29,8 +29,12 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        // Only cache real successes — caching a 404/500 would serve that error
+        // back from the cache long after the server recovered.
+        if (res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(event.request))
