@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from piper import PiperVoice
 
-from .normalize import normalize_text
+from .normalize import language_for_voice, normalize_text
 
 DEFAULT_MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 DEFAULT_VOICE_ID = "en_US-amy-medium"
@@ -73,7 +73,7 @@ class TTSEngine:
         self, text: str, voice_id: str = DEFAULT_VOICE_ID, length_scale: float = 1.0
     ) -> Iterable[tuple[np.ndarray, int]]:
         voice = self._get_voice(voice_id)
-        text = normalize_text(text)
+        text = normalize_text(text, language_for_voice(voice_id))
         config = self._make_config(length_scale)
         kwargs = {"syn_config": config} if config is not None else {}
         for chunk in voice.synthesize(text, **kwargs):
@@ -83,7 +83,7 @@ class TTSEngine:
         self, text: str, voice_id: str = DEFAULT_VOICE_ID, length_scale: float = 1.0
     ) -> bytes:
         voice = self._get_voice(voice_id)
-        text = normalize_text(text)
+        text = normalize_text(text, language_for_voice(voice_id))
         config = self._make_config(length_scale)
         kwargs = {"syn_config": config} if config is not None else {}
         buf = io.BytesIO()
