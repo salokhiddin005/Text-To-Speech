@@ -49,7 +49,7 @@ flowchart LR
 - Synthesis uses [Piper TTS](https://github.com/rhasspy/piper) — a CPU-friendly neural TTS based on VITS, exported to ONNX
 - The engine lazy-loads voices (one model in RAM at a time, ~150 MB) so it fits free-tier hosts (512 MB)
 - An LRU cache (`functools.lru_cache`) keeps the 128 most recent `(text, voice, speed)` results in memory — repeats return in <10 ms
-- `flask-limiter` caps requests at 30/min per IP to prevent abuse
+- `flask-limiter` caps synthesis at 5 requests per hour per visitor to prevent abuse
 
 ## Quick start (laptop)
 
@@ -132,13 +132,13 @@ curl https://your-deployment-url/health
 
 | Limit | Value | Applies to |
 |---|---|---|
-| Requests | 30 per minute per visitor | `/speak` and `/api/speak` |
+| Synthesis | 5 per hour per visitor | `/speak` and `/api/speak` |
 | Other endpoints | 60 per minute per visitor | everything else |
-| Text length | 1000 characters per request | `/speak` and `/api/speak` |
+| Text length | 700 characters per request | `/speak` and `/api/speak` |
 
-There is no daily or lifetime cap — the window is a rolling minute. Counters are
-held in memory, so they reset when the server restarts and are not shared between
-workers.
+The window is a rolling hour. Counters are held in memory, so they reset when the
+server restarts and are not shared between workers — on a free tier that sleeps
+when idle, the hour is best-effort rather than a guarantee.
 
 ## How access is controlled
 
@@ -167,7 +167,7 @@ call it.
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/speak` | POST | Synthesize text → WAV (requires `X-API-Key`, max 1000 chars, rate-limited 30/min/IP) |
+| `/api/speak` | POST | Synthesize text → WAV (requires `X-API-Key`, max 700 chars, 5/hour per visitor) |
 | `/api/voices` | GET | List all configured voices and which are installed |
 | `/api/stats` | GET | Request counter and cache hit rate |
 | `/health` | GET | Liveness check |

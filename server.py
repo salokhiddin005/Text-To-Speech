@@ -40,7 +40,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-MAX_TEXT_CHARS = 1000
+MAX_TEXT_CHARS = 700
+
+# Synthesis is the expensive path and the one worth protecting. Counters are held
+# in memory, so a restart clears them — on a free tier that sleeps when idle the
+# window is best-effort rather than a guarantee.
+SYNTHESIS_LIMIT = "5 per hour"
 
 
 def _split_env_list(name: str) -> set[str]:
@@ -111,7 +116,7 @@ app = Flask(__name__, static_folder="static")
 
 # Behind Render and Hugging Face the address Flask sees is the platform's proxy,
 # which is the same for every visitor — so the per-IP rate limit would put the
-# whole world in one bucket and ~30 people a minute could lock everyone else out.
+# whole world in one bucket, and a handful of visitors would lock out everyone.
 # Trusting the forwarded client address restores per-visitor limits. Only x_for
 # is fixed up: request.host already resolves correctly and the origin check
 # depends on it. PORT is set by both platforms and not by a plain local run.
@@ -177,7 +182,7 @@ def _bump(voice_id: str) -> None:
         _stats["by_voice"][voice_id] = _stats["by_voice"].get(voice_id, 0) + 1
 
 
-# Each entry holds a full WAV in memory (~0.5-1 MB for a 1000-char request), and
+# Each entry holds a full WAV in memory (~0.5-1 MB for a full-length request), and
 # a loaded voice model already costs ~150 MB, so keep this modest on 512 MB hosts.
 @lru_cache(maxsize=32)
 def _synthesize_cached(text: str, voice_id: str, length_scale: float) -> bytes:
@@ -252,7 +257,7 @@ def _do_speak(payload: dict):
 
 
 @app.route("/speak", methods=["POST"])
-@limiter.limit("30 per minute")
+@limiter.limit(SYNTHESIS_LIMIT)
 def speak():
     # Only the page this server rendered can reach synthesis here; scripts and
     # copied curl commands have no way to produce a valid token. /api/speak is
@@ -270,7 +275,7 @@ def speak():
 
 
 @app.route("/api/speak", methods=["POST"])
-@limiter.limit("30 per minute")
+@limiter.limit(SYNTHESIS_LIMIT)
 @require_api_key
 def api_speak():
     """Public API endpoint — same as /speak but documented at /docs, and requires

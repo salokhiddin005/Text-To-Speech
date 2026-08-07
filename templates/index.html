@@ -328,7 +328,7 @@
 
         <div class="textarea-wrap">
           <textarea id="text" placeholder="Type or paste the text you want spoken...">Hello, this is my text-to-speech system. It supports multiple voices and adjustable speech speed.</textarea>
-          <span class="char-count" id="charCount">0 / 1000</span>
+          <span class="char-count" id="charCount">0 / 700</span>
         </div>
 
         <div class="examples">
@@ -440,8 +440,8 @@
     const historyList  = document.getElementById('historyList');
     const waveformCanvas = document.getElementById('waveform');
 
-    const MAX_CHARS    = 1000;
-    const WARN_CHARS   = 800;
+    const MAX_CHARS    = 700;   // keep in step with MAX_TEXT_CHARS in server.py
+    const WARN_CHARS   = 560;
     const HISTORY_KEY  = 'tts-history';
     const HISTORY_MAX  = 5;
     const THEME_KEY    = 'tts-theme';

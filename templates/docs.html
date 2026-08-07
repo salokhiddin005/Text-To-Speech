@@ -60,7 +60,7 @@
     <p><strong>Request body (JSON):</strong></p>
     <table>
       <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
-      <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The text to synthesize. Max 1000 characters.</td></tr>
+      <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The text to synthesize. Max 700 characters.</td></tr>
       <tr><td><code>voice</code></td><td>string</td><td>no</td><td>Voice ID (default: <code>en_US-amy-medium</code>). See <code>/api/voices</code>.</td></tr>
       <tr><td><code>speed</code></td><td>float</td><td>no</td><td>Speed multiplier 0.5 to 2.0 (default 1.0).</td></tr>
     </table>
@@ -70,8 +70,8 @@
       <tr><th>Status</th><th>Meaning</th></tr>
       <tr><td><code>400</code></td><td>Empty text or unknown voice ID.</td></tr>
       <tr><td><code>401</code></td><td>Missing or invalid API key.</td></tr>
-      <tr><td><code>413</code></td><td>Text longer than 1000 characters.</td></tr>
-      <tr><td><code>429</code></td><td>Rate limit exceeded (30/min).</td></tr>
+      <tr><td><code>413</code></td><td>Text longer than 700 characters.</td></tr>
+      <tr><td><code>429</code></td><td>Rate limit exceeded (5 requests per hour).</td></tr>
       <tr><td><code>503</code></td><td>Voice is listed but not installed on this server, or API keys are not configured.</td></tr>
     </table>
 
@@ -121,7 +121,7 @@ new Audio(URL.createObjectURL(blob)).play();</pre>
 
     <h2>Notes</h2>
     <ul>
-      <li>Requires an <code>X-API-Key</code> header. Rate-limited to 30 requests/minute per API key's caller IP.</li>
+      <li>Requires an <code>X-API-Key</code> header. Rate-limited to 5 requests per hour per caller.</li>
       <li>First request to each new voice loads the model from disk (~1-2 seconds). Subsequent requests are fast.</li>
       <li>Source: <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank">github.com/salokhiddin005/Text-To-Speech</a></li>
     </ul>

@@ -5,7 +5,7 @@ import time
 import pytest
 
 import server
-from server import MAX_TEXT_CHARS, app, mint_page_token
+from server import MAX_TEXT_CHARS, app, limiter, mint_page_token
 
 from .conftest import TEST_API_KEY
 
@@ -26,6 +26,12 @@ def expired_page_token() -> str:
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
+    # The suite makes far more synthesis calls than the per-visitor allowance,
+    # and they all come from one address; leave the limiter on and tests would
+    # fail on the cap rather than on what they are actually asserting. The
+    # attribute is what takes effect — setting RATELIMIT_ENABLED after init does
+    # not, since the limiter reads it once at construction.
+    limiter.enabled = False
     with app.test_client() as client:
         yield client
 
@@ -172,3 +178,34 @@ def test_docs_page(client):
     res = client.get("/docs")
     assert res.status_code == 200
     assert b"/api/speak" in res.data
+
+
+def test_text_limit_matches_the_page(client):
+    """The counter shown in the UI must be the limit the server enforces."""
+    page = client.get("/").data.decode()
+    assert f"const MAX_CHARS    = {MAX_TEXT_CHARS};" in page
+    assert f"0 / {MAX_TEXT_CHARS}" in page
+
+
+def test_synthesis_limit_is_enforced_per_visitor():
+    """Limiter is disabled in the shared fixture, so exercise it explicitly."""
+    app.config["TESTING"] = True
+    limiter.enabled = True
+    limiter.reset()
+    try:
+        with app.test_client() as c:
+            headers = {"X-API-Key": TEST_API_KEY, "X-Forwarded-For": "203.0.113.7"}
+            codes = [
+                c.post("/api/speak", json={"text": ""}, headers=headers).status_code
+                for _ in range(7)
+            ]
+            allowed = sum(1 for code in codes if code != 429)
+            assert allowed == 5, f"expected 5 through before the cap, got {codes}"
+            assert codes[-1] == 429
+
+            # A different visitor still has their own allowance.
+            other = {"X-API-Key": TEST_API_KEY, "X-Forwarded-For": "203.0.113.8"}
+            assert c.post("/api/speak", json={"text": ""}, headers=other).status_code != 429
+    finally:
+        limiter.enabled = False
+        limiter.reset()
