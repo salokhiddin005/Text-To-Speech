@@ -10,217 +10,432 @@
   <title>Text to Speech</title>
   <style>
     :root {
-      --bg:        #0f172a;
-      --bg-card:   #1e293b;
-      --border:    #334155;
-      --text:      #e2e8f0;
-      --text-muted:#94a3b8;
-      --accent:    #2563eb;
-      --danger:    #dc2626;
-      --warning:   #f59e0b;
-      --success:   #16a34a;
+      --bg:         #0a0f1c;
+      --surface:    #111a2b;
+      --surface-2:  #18233a;
+      --border:     #24314a;
+      --border-strong: #33425f;
+      --text:       #e8eefb;
+      --text-muted: #8ba0c0;
+      --accent:     #4f7cff;
+      --accent-hover: #6a90ff;
+      --accent-soft: rgba(79, 124, 255, 0.12);
+      --danger:     #f0555f;
+      --warning:    #f5a524;
+      --success:    #2fbf71;
+      --shadow:     0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.25);
+      --radius:     14px;
+      --radius-sm:  10px;
     }
     [data-theme="light"] {
-      --bg:        #f8fafc;
-      --bg-card:   #ffffff;
-      --border:    #cbd5e1;
-      --text:      #0f172a;
-      --text-muted:#64748b;
-      --accent:    #2563eb;
+      --bg:         #f4f6fb;
+      --surface:    #ffffff;
+      --surface-2:  #f1f5fb;
+      --border:     #e3e9f2;
+      --border-strong: #cbd6e6;
+      --text:       #0d1526;
+      --text-muted: #5f6f88;
+      --accent:     #3563e9;
+      --accent-hover: #2a52c8;
+      --accent-soft: rgba(53, 99, 233, 0.10);
+      --danger:     #d92d3c;
+      --warning:    #b7791f;
+      --success:    #12915b;
+      --shadow:     0 1px 2px rgba(16,32,64,.06), 0 8px 24px rgba(16,32,64,.06);
     }
+
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; }
+    html, body { margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 20px;
-      transition: background 0.15s, color 0.15s;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 24px 20px 48px;
+      transition: background .2s ease, color .2s ease;
     }
-    .container { max-width: 720px; margin: 0 auto; }
+    /* Ambient wash behind the app; purely decorative. */
+    body::before {
+      content: '';
+      position: fixed; inset: 0 0 auto 0; height: 320px;
+      background: radial-gradient(60% 100% at 50% 0%, var(--accent-soft), transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .container { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* ───────── Header ───────── */
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      gap: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; margin-bottom: 24px;
     }
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-    h1 { font-size: 22px; margin: 0; font-weight: 600; }
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0 0 6px;
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 40px; height: 40px; flex: none;
+      border-radius: 11px;
+      background: linear-gradient(140deg, var(--accent), #8a6cff);
+      display: grid; place-items: center;
+      box-shadow: 0 4px 14px rgba(79,124,255,.35);
     }
-    select, textarea, input[type="range"] {
-      width: 100%;
-      font-family: inherit;
-      font-size: 16px;
-      color: var(--text);
-      background: var(--bg-card);
+    .brand-mark svg { width: 21px; height: 21px; display: block; }
+    h1 { font-size: 19px; margin: 0; font-weight: 650; letter-spacing: -.015em; }
+    .tagline { margin: 1px 0 0; font-size: 13px; color: var(--text-muted); }
+    .header-actions { display: flex; gap: 8px; align-items: center; flex: none; }
+
+    /* ───────── Layout ───────── */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
     }
-    select { padding: 10px 12px; cursor: pointer; }
-    select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-    textarea { min-height: 180px; padding: 14px; resize: vertical; }
-    .field { margin-bottom: 12px; }
-    .voice-row { display: flex; gap: 8px; align-items: stretch; }
-    .voice-row select { flex: 1; }
+    .card + .card { margin-top: 20px; }
+    .card-title {
+      font-size: 11px; font-weight: 650; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin: 0 0 14px;
+    }
+
+    /* ───────── Form controls ───────── */
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin: 0 0 7px; }
+    select, textarea {
+      width: 100%; font-family: inherit; font-size: 15px; color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    select {
+      padding: 11px 38px 11px 13px; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238ba0c0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+    }
+    textarea { min-height: 210px; padding: 14px; resize: vertical; line-height: 1.6; }
+    select:focus, textarea:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .field + .field { margin-top: 16px; }
+
+    .textarea-wrap { position: relative; }
     .char-count {
-      text-align: right;
-      font-size: 12px;
-      color: var(--text-muted);
-      margin: -4px 4px 8px 0;
+      position: absolute; right: 12px; bottom: 10px;
+      font-size: 11.5px; color: var(--text-muted);
       font-variant-numeric: tabular-nums;
+      background: var(--surface-2); padding: 2px 7px; border-radius: 999px;
+      pointer-events: none;
     }
     .char-count.warn   { color: var(--warning); }
-    .char-count.danger { color: var(--danger); }
-    .examples {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 8px 0 12px;
-    }
-    .examples button, .history-list button, .preview-btn, .theme-btn {
-      padding: 8px 12px;
-      background: var(--bg-card);
+    .char-count.danger { color: var(--danger); font-weight: 600; }
+
+    /* ───────── Chips (examples + history) ───────── */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .examples { margin-top: 14px; }
+    .examples button, .history-list button {
+      padding: 7px 13px;
+      background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 999px;
-      color: var(--text);
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .examples button:hover, .history-list button:hover, .preview-btn:hover, .theme-btn:hover {
-      border-color: var(--accent);
-    }
-    .preview-btn { white-space: nowrap; padding: 0 16px; }
-    .preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .speed-row { display: flex; align-items: center; gap: 12px; }
-    .speed-row input[type="range"] { flex: 1; accent-color: var(--accent); background: transparent; border: 0; }
-    .speed-value { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
-    .stream-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      font-size: 13px;
       color: var(--text-muted);
+      font-size: 13px; font-family: inherit;
+      cursor: pointer;
+      transition: all .15s;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    button.action {
-      flex: 1; min-width: 120px;
-      padding: 14px; border: none; border-radius: 10px;
-      font-size: 16px; font-weight: 600; cursor: pointer;
-      transition: opacity 0.15s, transform 0.05s;
-      font-family: inherit;
+    .examples button:hover, .history-list button:hover {
+      border-color: var(--accent); color: var(--text); background: var(--accent-soft);
     }
-    button.action:active { transform: translateY(1px); }
-    button.action:disabled { opacity: 0.4; cursor: not-allowed; }
-    .speak    { background: var(--accent); color: white; }
-    .stop     { background: #475569; color: white; }
-    .download { background: var(--success); color: white; }
-    .clear    { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-    .status { margin-top: 14px; color: var(--text-muted); font-size: 14px; min-height: 20px; }
-    .waveform {
-      width: 100%; height: 60px; margin-top: 12px;
-      background: var(--bg-card); border-radius: 10px;
-      border: 1px solid var(--border);
-      display: block;
-    }
-    .history { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
-    .history h2 {
-      font-size: 13px; color: var(--text-muted); margin: 0 0 8px;
-      font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .history-list button {
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
+
+    /* ───────── Buttons ───────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 18px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14.5px; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background .15s, border-color .15s, color .15s, opacity .15s, transform .06s;
       white-space: nowrap;
     }
-    .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    .footer {
-      margin-top: 32px; padding-top: 16px;
-      border-top: 1px solid var(--border);
-      display: flex; justify-content: space-between; gap: 8px;
-      font-size: 12px; color: var(--text-muted);
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn svg { width: 17px; height: 17px; flex: none; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(79,124,255,.3); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-ghost { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--border-strong); }
+    .btn-quiet { background: transparent; color: var(--text-muted); border-color: var(--border); }
+    .btn-quiet:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    #speakBtn { flex: 1 1 190px; padding: 13px 20px; font-size: 15px; }
+    .actions .btn:not(#speakBtn) { flex: 0 1 auto; }
+
+    /* Spinner shown on the primary button while synthesis is in flight. */
+    .btn .spinner { display: none; width: 15px; height: 15px; flex: none;
+      border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite; }
+    .btn.is-busy .spinner { display: block; }
+    .btn.is-busy .btn-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .icon-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 13px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text-muted); font-size: 13px; font-family: inherit; font-weight: 500;
+      cursor: pointer; transition: all .15s;
     }
-    .footer a { color: var(--text-muted); text-decoration: none; }
+    .icon-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+    .icon-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .icon-btn svg { width: 15px; height: 15px; }
+
+    /* ───────── Speed slider ───────── */
+    .speed-head { display: flex; justify-content: space-between; align-items: baseline; }
+    .speed-value {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      font-variant-numeric: tabular-nums;
+      background: var(--surface-2); padding: 1px 9px; border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; border-radius: 999px; margin: 10px 0 4px;
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill,50%), var(--surface-2) var(--fill,50%), var(--surface-2) 100%);
+      border: 1px solid var(--border); cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; border: 3px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: grab;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 15px; height: 15px; border-radius: 50%;
+      background: #fff; border: 3px solid var(--accent); cursor: grab;
+    }
+    input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+    /* ───────── Streaming switch ───────── */
+    .switch-row {
+      display: flex; align-items: flex-start; gap: 11px; margin-top: 18px;
+      padding-top: 16px; border-top: 1px solid var(--border);
+    }
+    .switch { position: relative; flex: none; width: 38px; height: 22px; margin-top: 1px; }
+    .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+    .switch .track {
+      position: absolute; inset: 0; border-radius: 999px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      transition: background .18s, border-color .18s;
+    }
+    .switch .track::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--text-muted); transition: transform .18s, background .18s;
+    }
+    .switch input:checked ~ .track { background: var(--accent); border-color: var(--accent); }
+    .switch input:checked ~ .track::after { transform: translateX(16px); background: #fff; }
+    .switch input:focus-visible ~ .track { box-shadow: 0 0 0 3px var(--accent-soft); }
+    .switch-label { font-size: 13px; color: var(--text); margin: 0; font-weight: 500; }
+    .switch-hint { font-size: 12px; color: var(--text-muted); margin: 1px 0 0; }
+
+    /* ───────── Output ───────── */
+    /* Placeholder sits under the canvas and hides once bars are drawing, so the
+       output area reads as waiting rather than as an empty box. */
+    .output {
+      position: relative; margin-top: 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .waveform { width: 100%; height: 76px; display: block; position: relative; z-index: 1; }
+    .output-idle {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-size: 12.5px; color: var(--text-muted); opacity: .65;
+      pointer-events: none; z-index: 0;
+    }
+    .output.is-playing .output-idle { opacity: 0; }
+    .status {
+      display: flex; align-items: center; gap: 9px;
+      margin-top: 14px; font-size: 13.5px; color: var(--text-muted); min-height: 21px;
+    }
+    .status::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none;
+      background: var(--text-muted);
+    }
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; opacity: .85; }
+    kbd {
+      font-family: inherit; font-size: 11px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 1px 5px; color: var(--text-muted);
+    }
+
+    /* ───────── History ───────── */
+    .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* ───────── Footer ───────── */
+    .footer {
+      margin-top: 28px; padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+      font-size: 12.5px; color: var(--text-muted);
+    }
+    .footer a { color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
     .footer a:hover { color: var(--text); }
+    .footer svg { width: 15px; height: 15px; }
+
+    @media (max-width: 560px) {
+      body { padding: 18px 14px 36px; }
+      .card { padding: 16px; }
+      .actions .btn { flex: 1 1 100%; }
+    }
+    /* Below this the tagline wraps and crowds the theme button. */
+    @media (max-width: 470px) {
+      .tagline { display: none; }
+      h1 { font-size: 17px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 9px; }
+      .brand-mark svg { width: 18px; height: 18px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Text to Speech</h1>
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+            <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 11v2"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Text to Speech</h1>
+          <p class="tagline">12 neural voices &middot; 7 languages &middot; runs on CPU</p>
+        </div>
+      </div>
       <div class="header-actions">
-        <button class="theme-btn" id="themeBtn">Light</button>
+        <button class="icon-btn" id="themeBtn" aria-label="Toggle colour theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>
+          </svg>
+          <span id="themeLabel">Light</span>
+        </button>
       </div>
+    </header>
+
+    <div class="layout">
+      <!-- ─────────── Compose ─────────── -->
+      <main class="card">
+        <h2 class="card-title">Compose</h2>
+
+        <div class="textarea-wrap">
+          <textarea id="text" placeholder="Type or paste the text you want spoken...">Hello, this is my text-to-speech system. It supports multiple voices and adjustable speech speed.</textarea>
+          <span class="char-count" id="charCount">0 / 1000</span>
+        </div>
+
+        <div class="examples">
+          <div class="chip-row">
+            <button data-example="Hello! Welcome to my text to speech system.">Greeting</button>
+            <button data-example="Dr. Smith owes me 1234 dollars on the 21st of June at 3:45 p.m.">Numbers test</button>
+            <button data-example="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once. It contains all the letters from A to Z.">Long paragraph</button>
+            <button data-example="Life is what happens to you while you are busy making other plans.">Quote</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="speakBtn">
+            <span class="spinner" aria-hidden="true"></span>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/>
+            </svg>
+            Speak
+          </button>
+          <button class="btn btn-ghost" id="stopBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            Stop
+          </button>
+          <button class="btn btn-ghost" id="downloadBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <button class="btn btn-quiet" id="clearBtn">Clear</button>
+        </div>
+
+        <div class="output" id="output">
+          <canvas class="waveform" id="waveform"></canvas>
+          <span class="output-idle">Audio appears here once you press Speak</span>
+        </div>
+
+        <div class="status" id="status">Ready.</div>
+        <p class="hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to speak &middot; <kbd>Esc</kbd> to stop</p>
+      </main>
+
+      <!-- ─────────── Settings ─────────── -->
+      <aside>
+        <section class="card">
+          <h2 class="card-title">Voice</h2>
+
+          <div class="field">
+            <label for="voice">Speaker</label>
+            <select id="voice">
+              {% for voice_id, voice_name in voices.items() %}
+              <option value="{{ voice_id }}" {% if voice_id == default_voice %}selected{% endif %}>{{ voice_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <button class="icon-btn" id="previewBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Preview this voice
+            </button>
+          </div>
+
+          <div class="field">
+            <div class="speed-head">
+              <label for="speed" style="margin:0">Speed</label>
+              <span class="speed-value" id="speedValue">1.0x</span>
+            </div>
+            <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0">
+            <div class="scale"><span>0.5x</span><span>2.0x</span></div>
+          </div>
+
+          <div class="switch-row">
+            <span class="switch">
+              <input type="checkbox" id="streamToggle">
+              <span class="track" aria-hidden="true"></span>
+            </span>
+            <div>
+              <label class="switch-label" for="streamToggle" style="margin:0; cursor:pointer">Stream sentence by sentence</label>
+              <p class="switch-hint">Starts playing sooner on long text.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card history" id="history" style="display:none">
+          <h2 class="card-title">Recent</h2>
+          <div class="history-list" id="historyList"></div>
+        </section>
+      </aside>
     </div>
 
-    <div class="field">
-      <label for="voice">Voice</label>
-      <div class="voice-row">
-        <select id="voice">
-          {% for voice_id, voice_name in voices.items() %}
-          <option value="{{ voice_id }}" {% if voice_id == default_voice %}selected{% endif %}>{{ voice_name }}</option>
-          {% endfor %}
-        </select>
-        <button class="preview-btn" id="previewBtn">Preview</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="text">Text</label>
-      <textarea id="text" placeholder="Type or paste text...">Hello, this is my text-to-speech system. It supports multiple voices and adjustable speech speed.</textarea>
-      <div class="char-count" id="charCount">0 / 1000</div>
-    </div>
-
-    <div class="examples">
-      <button data-example="Hello! Welcome to my text to speech system.">Greeting</button>
-      <button data-example="Dr. Smith owes me 1234 dollars on the 21st of June at 3:45 p.m.">Numbers test</button>
-      <button data-example="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once. It contains all the letters from A to Z.">Long paragraph</button>
-      <button data-example="Life is what happens to you while you are busy making other plans.">Quote</button>
-    </div>
-
-    <div class="field">
-      <label for="speed">Speed <span class="speed-value" id="speedValue">1.0x</span></label>
-      <div class="speed-row">
-        <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0">
-      </div>
-      <div class="stream-toggle">
-        <input type="checkbox" id="streamToggle">
-        <label for="streamToggle" style="margin: 0; cursor: pointer;">Stream sentence-by-sentence (faster start)</label>
-      </div>
-    </div>
-
-    <div class="row">
-      <button class="action speak"    id="speakBtn">Speak</button>
-      <button class="action stop"     id="stopBtn"     disabled>Stop</button>
-      <button class="action download" id="downloadBtn" disabled>Download</button>
-      <button class="action clear"    id="clearBtn">Clear</button>
-    </div>
-
-    <canvas class="waveform" id="waveform"></canvas>
-
-    <div class="status" id="status">Ready.</div>
-    <div class="hint">Shortcuts: Ctrl+Enter to speak, Esc to stop</div>
-
-    <div class="history" id="history" style="display:none">
-      <h2>Recent</h2>
-      <div class="history-list" id="historyList"></div>
-    </div>
-
-    <div class="footer">
-      <span id="footerStats">—</span>
-      <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank">github</a>
-    </div>
+    <footer class="footer">
+      <span id="footerStats">&mdash;</span>
+      <a href="https://github.com/salokhiddin005/Text-To-Speech" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.2-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.9 1.2 1.9 1.2 3.2 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        Source on GitHub
+      </a>
+    </footer>
 
     <audio id="player" style="display:none" crossorigin="anonymous"></audio>
   </div>
@@ -238,6 +453,7 @@
     const clearBtn     = document.getElementById('clearBtn');
     const charCount    = document.getElementById('charCount');
     const themeBtn     = document.getElementById('themeBtn');
+    const themeLabel   = document.getElementById('themeLabel');
     const status       = document.getElementById('status');
     const player       = document.getElementById('player');
     const historyEl    = document.getElementById('history');
@@ -267,7 +483,9 @@
     // ───────── Theme ─────────
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
-      themeBtn.textContent = theme === 'light' ? 'Dark' : 'Light';
+      // Write to the label span, not the button: the button also holds an icon
+      // that setting textContent would wipe out.
+      themeLabel.textContent = theme === 'light' ? 'Dark' : 'Light';
       localStorage.setItem(THEME_KEY, theme);
     }
     applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
@@ -291,9 +509,15 @@
     updateCharCount();
 
     // ───────── Speed ─────────
-    speedInput.addEventListener('input', () => {
-      speedValue.textContent = parseFloat(speedInput.value).toFixed(1) + 'x';
-    });
+    function updateSpeed() {
+      const value = parseFloat(speedInput.value);
+      speedValue.textContent = value.toFixed(1) + 'x';
+      // Drives the filled portion of the track (see the range background rule).
+      const pct = ((value - speedInput.min) / (speedInput.max - speedInput.min)) * 100;
+      speedInput.style.setProperty('--fill', pct + '%');
+    }
+    speedInput.addEventListener('input', updateSpeed);
+    updateSpeed();
 
     // ───────── Stream toggle ─────────
     streamToggle.checked = localStorage.getItem(STREAM_KEY) === 'true';
@@ -357,6 +581,7 @@
       isBusy = busy;
       stopBtn.disabled  = !busy;
       previewBtn.disabled = busy;
+      speakBtn.classList.toggle('is-busy', busy);
       refreshSpeakEnabled();
     }
 
@@ -584,7 +809,8 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioCtx.createMediaElementSource(player);
         analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 128;
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.75;
         source.connect(analyser);
         analyser.connect(audioCtx.destination);
       } catch (e) {
@@ -600,8 +826,14 @@
       const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
 
       const data = new Uint8Array(analyser.frequencyBinCount);
-      const barCount = data.length;
+      // Speech energy sits almost entirely in the lower bins; drawing the whole
+      // spectrum left the right half permanently flat. Spread just the occupied
+      // range across the full width instead.
+      const barCount = Math.floor(data.length * 0.62);
+      const gap = 2 * window.devicePixelRatio;
       const barWidth = width / barCount;
+      const mid = height / 2;
+      const radius = Math.min(barWidth - gap, 6 * window.devicePixelRatio) / 2;
 
       function loop() {
         if (!waveformActive) {
@@ -611,25 +843,44 @@
         analyser.getByteFrequencyData(data);
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = accent;
+
+        // Continuous baseline: gaps between words are frequent, and rendering
+        // them as stub bars looked like a broken dotted line.
+        const lineH = Math.max(1.5 * window.devicePixelRatio, 1);
+        ctx.globalAlpha = 0.25;
+        ctx.fillRect(0, mid - lineH / 2, width, lineH);
+        ctx.globalAlpha = 1;
+
+        const w = Math.max(barWidth - gap, 1);
         for (let i = 0; i < barCount; i++) {
           const v = data[i] / 255;
-          const barHeight = v * height * 0.9;
-          const x = i * barWidth;
-          ctx.fillRect(x + 1, height - barHeight, barWidth - 2, barHeight);
+          if (v < 0.03) continue;            // silence stays on the baseline
+          const half = Math.max(v * height * 0.42, lineH);
+          ctx.beginPath();
+          ctx.roundRect(i * barWidth + gap / 2, mid - half, w, half * 2, radius);
+          ctx.fill();
         }
         requestAnimationFrame(loop);
       }
       loop();
     }
 
+    const outputEl = document.getElementById('output');
     player.addEventListener('play', () => {
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       setupWaveform();
       waveformActive = true;
+      outputEl.classList.add('is-playing');
       drawWaveform();
     });
-    player.addEventListener('pause', () => { waveformActive = false; });
-    player.addEventListener('ended', () => { waveformActive = false; });
+    player.addEventListener('pause', () => {
+      waveformActive = false;
+      outputEl.classList.remove('is-playing');
+    });
+    player.addEventListener('ended', () => {
+      waveformActive = false;
+      outputEl.classList.remove('is-playing');
+    });
 
     // ───────── Service worker ─────────
     if ('serviceWorker' in navigator) {
