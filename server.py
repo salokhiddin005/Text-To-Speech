@@ -4,11 +4,15 @@ Runs locally and on cloud platforms (Render, Hugging Face Spaces). Set the
 PORT environment variable to override the default of 5000.
 """
 
+import hashlib
+import hmac
 import io
 import logging
 import os
+import secrets
 import socket
 import threading
+import time
 from datetime import UTC, datetime
 from functools import lru_cache, wraps
 from urllib.parse import urlparse
@@ -44,6 +48,42 @@ if not API_KEYS:
 # Extra origins allowed to call /speak from browser JS. Same-origin requests are
 # always permitted, so this only needs entries for genuine cross-origin callers.
 EXTRA_ALLOWED_ORIGINS = {origin.rstrip("/") for origin in _split_env_list("ALLOWED_ORIGINS")}
+
+# Signing key for page tokens. Generated per-process when unset, which is fine
+# for a single worker; set SECRET_KEY explicitly before scaling past one, or
+# tokens minted by one worker will be rejected by the others.
+SECRET_KEY = os.environ.get("SECRET_KEY", "").encode() or secrets.token_bytes(32)
+
+# How long a page token stays valid. Long enough that an open tab rarely expires,
+# short enough that a scraped token has to be refreshed to stay useful.
+PAGE_TOKEN_TTL = 2 * 60 * 60
+
+
+def mint_page_token() -> str:
+    """Issue a token embedded in the served page.
+
+    /speak has to stay open for ordinary visitors, so it can't sit behind an API
+    key — but that also makes it scriptable. Requiring a signed token that only
+    the rendered page hands out means a would-be integrator has to load the real
+    page and re-scrape on every expiry instead of just calling the endpoint.
+    Signed rather than stored, so it costs no memory and survives no state.
+    """
+    expires = str(int(time.time()) + PAGE_TOKEN_TTL)
+    signature = hmac.new(SECRET_KEY, expires.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{expires}.{signature}"
+
+
+def _page_token_is_valid(token: str) -> bool:
+    expires, _, signature = (token or "").partition(".")
+    if not expires or not signature:
+        return False
+    expected = hmac.new(SECRET_KEY, expires.encode(), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(signature, expected):
+        return False
+    try:
+        return int(expires) > time.time()
+    except ValueError:
+        return False
 
 
 def require_api_key(view):
@@ -131,7 +171,12 @@ def _synthesize_cached(text: str, voice_id: str, length_scale: float) -> bytes:
 
 @app.route("/")
 def index():
-    return render_template("index.html", voices=VOICES, default_voice=DEFAULT_VOICE_ID)
+    return render_template(
+        "index.html",
+        voices=VOICES,
+        default_voice=DEFAULT_VOICE_ID,
+        page_token=mint_page_token(),
+    )
 
 
 @app.route("/docs")
@@ -182,6 +227,12 @@ def _do_speak(payload: dict):
 @app.route("/speak", methods=["POST"])
 @limiter.limit("30 per minute")
 def speak():
+    # Only the page this server rendered can reach synthesis here; scripts and
+    # copied curl commands have no way to produce a valid token. /api/speak is
+    # the supported path for programmatic callers, and it needs an API key.
+    if not _page_token_is_valid(request.headers.get("X-Page-Token", "")):
+        logger.warning("rejected /speak with missing or expired page token")
+        return jsonify(error="invalid or expired page token", code="bad_page_token"), 403
     payload = request.get_json(silent=True) or {}
     audio, err = _do_speak(payload)
     if err:

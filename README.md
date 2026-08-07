@@ -123,8 +123,32 @@ curl https://your-deployment-url/health
 |---|---|---|
 | `API_KEYS` | *(unset)* | Comma-separated keys accepted by `/api/speak`. Unset disables the endpoint. |
 | `ALLOWED_ORIGINS` | *(unset)* | Extra origins allowed to call `/speak` from browser JS. Same-origin is always allowed, so this is only needed for genuine cross-origin callers. |
+| `SECRET_KEY` | *(generated)* | Signs page tokens. Only needs setting if you run more than one worker, so tokens minted by one are accepted by the others. |
 | `PORT` | `5000` | Port to bind. |
 | `LOG_LEVEL` | `INFO` | Python logging level. |
+
+## How access is controlled
+
+The two synthesis endpoints are protected differently, because they serve
+different callers:
+
+| | `/speak` | `/api/speak` |
+|---|---|---|
+| Who it's for | Visitors on the website | Programmatic integrations |
+| Requires | `X-Page-Token` issued with the page | `X-API-Key` |
+| Cross-origin browser JS | Blocked | n/a |
+
+`/speak` can't sit behind an API key — every visitor has to be able to use it —
+so it instead requires a short-lived HMAC-signed token that is only ever embedded
+in the rendered page. Ordinary visitors get one automatically and never notice it.
+Anyone wanting to drive the endpoint from their own code has to load the real page
+and re-scrape a fresh token every couple of hours, which is deliberately more
+trouble than it's worth. Tokens are signed rather than stored, so this costs no
+server memory and nothing to invalidate.
+
+This raises the cost of copying rather than making it impossible — nothing served
+to a browser can be fully locked down, since the browser itself has to be able to
+call it.
 
 ### Endpoints
 

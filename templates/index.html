@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#2563eb">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <meta name="page-token" content="{{ page_token }}">
   <title>Text to Speech</title>
   <style>
     :root {
@@ -250,6 +251,7 @@
     const HISTORY_MAX  = 5;
     const THEME_KEY    = 'tts-theme';
     const STREAM_KEY   = 'tts-stream';
+    const RELOADED_KEY = 'tts-token-reloaded';
 
     let currentBlob = null;
     let currentUrl  = null;
@@ -358,13 +360,37 @@
       refreshSpeakEnabled();
     }
 
+    // Issued by the server when this page was rendered; /speak requires it.
+    const PAGE_TOKEN = document.querySelector('meta[name="page-token"]').content;
+
     async function synthesize(text, voice, speed) {
       const res = await fetch('/speak', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Page-Token': PAGE_TOKEN },
         body: JSON.stringify({ text, voice, speed }),
       });
-      if (!res.ok) throw new Error(`server error ${res.status}`);
+      if (!res.ok) {
+        // The token has a lifetime, so a tab left open for a long time can go
+        // stale. Reloading mints a fresh one — there is deliberately no endpoint
+        // that hands out tokens, since that would be trivially scriptable.
+        if (res.status === 403) {
+          const body = await res.json().catch(() => ({}));
+          if (body.code === 'bad_page_token') {
+            // Reload only once: offline, the service worker replays the cached
+            // page with the same stale token, which would otherwise loop forever.
+            if (!sessionStorage.getItem(RELOADED_KEY)) {
+              sessionStorage.setItem(RELOADED_KEY, '1');
+              status.textContent = 'Session expired — refreshing...';
+              location.reload();
+            } else {
+              status.textContent = 'Session expired. Please reload the page.';
+            }
+            throw new Error('page token expired');
+          }
+        }
+        throw new Error(`server error ${res.status}`);
+      }
+      sessionStorage.removeItem(RELOADED_KEY);
       return res.blob();
     }
 

@@ -1,10 +1,26 @@
+import hashlib
+import hmac
+import time
+
 import pytest
 
-from server import MAX_TEXT_CHARS, app
+import server
+from server import MAX_TEXT_CHARS, app, mint_page_token
 
 from .conftest import TEST_API_KEY
 
 AUTH = {"X-API-Key": TEST_API_KEY}
+
+
+def page_headers(**extra):
+    return {"X-Page-Token": mint_page_token(), **extra}
+
+
+def expired_page_token() -> str:
+    """A correctly signed token whose expiry has already passed."""
+    expires = str(int(time.time()) - 1)
+    signature = hmac.new(server.SECRET_KEY, expires.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{expires}.{signature}"
 
 
 @pytest.fixture
@@ -34,24 +50,57 @@ def test_voices_endpoint(client):
 
 
 def test_speak_blocks_disallowed_origin(client):
-    res = client.post("/speak", json={"text": "hi"}, headers={"Origin": "https://evil.example.com"})
+    res = client.post(
+        "/speak", json={"text": "hi"}, headers=page_headers(Origin="https://evil.example.com")
+    )
     assert res.status_code == 403
+    assert "origin" in res.json["error"]
+
+
+def test_speak_requires_page_token(client):
+    """A scripted caller has no token, so it cannot reach synthesis at all."""
+    res = client.post("/speak", json={"text": "hi"})
+    assert res.status_code == 403
+    assert res.json["code"] == "bad_page_token"
+
+
+def test_speak_rejects_forged_page_token(client):
+    res = client.post(
+        "/speak", json={"text": "hi"}, headers={"X-Page-Token": "9999999999.deadbeef"}
+    )
+    assert res.status_code == 403
+    assert res.json["code"] == "bad_page_token"
+
+
+def test_speak_rejects_expired_page_token(client):
+    """Correct signature, but past its expiry — a scraped token goes stale."""
+    res = client.post("/speak", json={"text": "hi"}, headers={"X-Page-Token": expired_page_token()})
+    assert res.status_code == 403
+    assert res.json["code"] == "bad_page_token"
+
+
+def test_index_serves_a_working_page_token(client):
+    """The token embedded in the page must be one /speak actually accepts."""
+    page = client.get("/").data.decode()
+    token = page.split('name="page-token" content="')[1].split('"')[0]
+    res = client.post("/speak", json={"text": ""}, headers={"X-Page-Token": token})
+    assert res.status_code == 400  # reached the handler; rejected only for empty text
 
 
 def test_speak_allows_no_origin(client):
-    """curl and backend scripts send no Origin; they must not be blocked."""
-    res = client.post("/speak", json={"text": ""})
+    """Non-browser callers send no Origin; the token is what gates them."""
+    res = client.post("/speak", json={"text": ""}, headers=page_headers())
     assert res.status_code == 400
 
 
 def test_speak_allows_same_origin(client):
     """The site's own page (any host/port, including LAN IPs) must work."""
-    res = client.post("/speak", json={"text": ""}, headers={"Origin": "http://localhost"})
+    res = client.post("/speak", json={"text": ""}, headers=page_headers(Origin="http://localhost"))
     assert res.status_code == 400
 
 
 def test_speak_same_origin_gets_cors_header(client):
-    res = client.post("/speak", json={"text": ""}, headers={"Origin": "http://localhost"})
+    res = client.post("/speak", json={"text": ""}, headers=page_headers(Origin="http://localhost"))
     assert res.headers.get("Access-Control-Allow-Origin") == "http://localhost"
 
 
